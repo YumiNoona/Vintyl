@@ -13,7 +13,7 @@ function getClient(): PrismaClient {
   if (!url) throw new Error("DATABASE_URL is missing")
 
   const pool = new pg.Pool({ connectionString: url, ssl: { rejectUnauthorized: false } })
-  const adapter = new PrismaPg(pool)
+  const adapter = new PrismaPg(pool as any)
   const prisma = new PrismaClient({ adapter, log: ["error"] })
 
   if (process.env.NODE_ENV !== "production") {

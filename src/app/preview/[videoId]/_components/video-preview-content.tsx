@@ -4,6 +4,8 @@ import React, { useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Eye, Calendar } from "lucide-react";
 import { incrementVideoViews } from "@/actions/video";
+import AISummaryButton from "./ai-summary-button";
+import Comments from "./comments";
 
 type VideoPreviewContentProps = {
   video: {
@@ -15,6 +17,7 @@ type VideoPreviewContentProps = {
     createdAt: Date;
     processing: boolean;
     summary: string | null;
+    transcript: string | null;
     user: {
       firstName: string | null;
       lastName: string | null;
@@ -24,10 +27,17 @@ type VideoPreviewContentProps = {
       subscription: { plan: "FREE" | "PRO" } | null;
     } | null;
   };
+  currentUser?: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    image: string | null;
+  };
 };
 
 export default function VideoPreviewContent({
   video,
+  currentUser,
 }: VideoPreviewContentProps) {
   useEffect(() => {
     incrementVideoViews(video.id);
@@ -83,10 +93,19 @@ export default function VideoPreviewContent({
           </div>
 
           {video.description && (
-            <div className="p-4 bg-neutral-800/30 rounded-xl">
+            <div className="p-4 bg-neutral-800/30 rounded-xl mb-6">
               <h3 className="font-semibold mb-2">Description</h3>
               <p className="text-neutral-400 text-sm whitespace-pre-wrap">
                 {video.description}
+              </p>
+            </div>
+          )}
+
+          {video.transcript && (
+            <div className="p-4 bg-neutral-800/20 rounded-xl border border-neutral-800">
+              <h3 className="font-semibold mb-2">Transcript</h3>
+              <p className="text-neutral-400 text-sm whitespace-pre-wrap max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {video.transcript}
               </p>
             </div>
           )}
@@ -94,12 +113,16 @@ export default function VideoPreviewContent({
 
         {/* Sidebar Info */}
         <div className="space-y-6">
+          {!video.summary && (
+            <AISummaryButton videoId={video.id} />
+          )}
+
           {video.summary && (
-            <div className="p-4 bg-neutral-800/40 rounded-xl">
-              <h3 className="font-semibold mb-2 flex items-center gap-2">
+            <div className="p-4 bg-neutral-800/40 rounded-xl border border-indigo-500/20">
+              <h3 className="font-semibold mb-2 flex items-center gap-2 text-indigo-400">
                 ✨ AI Summary
               </h3>
-              <p className="text-neutral-400 text-sm">{video.summary}</p>
+              <p className="text-neutral-300 text-sm">{video.summary}</p>
             </div>
           )}
 
@@ -111,12 +134,8 @@ export default function VideoPreviewContent({
             </div>
           )}
 
-          <div className="p-4 bg-neutral-800/40 rounded-xl">
-            <h3 className="font-semibold mb-3">Activity</h3>
-            <p className="text-neutral-500 text-sm">
-              Comments coming soon...
-            </p>
-          </div>
+          {/* Comments Section */}
+          <Comments videoId={video.id} user={currentUser} />
         </div>
       </div>
     </div>

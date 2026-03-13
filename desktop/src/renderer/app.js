@@ -160,27 +160,61 @@ async function startRecording() {
     }
   };
 
-  mediaRecorder.onstop = () => {
+  mediaRecorder.onstop = async () => {
+    statusText.textContent = "Saving recording...";
+    startBtn.disabled = true;
+
     // Create downloadable blob
     const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const url = URL.createObjectURL(blob);
+    const filename = `venus-recording-${Date.now()}.webm`;
 
-    // Auto download
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `venus-recording-${Date.now()}.webm`;
-    a.click();
-
-    // Notify server
-    if (socket?.connected) {
-      socket.emit("stop-recording", {
-        filename: a.download,
-        clerkId: "desktop-user",
+    try {
+      // 1. Get Presigned URL
+      const res = await fetch("http://localhost:3000/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileName: filename,
+          contentType: "video/webm",
+          // Use hardcoded IDs since there is no desktop auth
+          workspaceId: "72241b5a-ddc3-4af8-ba8f-98c684c49be1",
+          clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh"
+        }),
       });
+
+      const { uploadUrl, videoId } = await res.json();
+
+      if (!uploadUrl) throw new Error("Could not get upload URL");
+
+      statusText.textContent = "Uploading to cloud...";
+
+      // 2. Upload direct to S3
+      await fetch(uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": "video/webm" },
+        body: blob,
+      });
+
+      statusText.textContent = "Starting AI Processing...";
+
+      // 3. Trigger AI Processing
+      await fetch("http://localhost:3000/api/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId,
+          action: "process"
+        })
+      });
+
+      statusText.textContent = "Recording saved and processing started!";
+    } catch (err) {
+      console.error("Upload error:", err);
+      statusText.textContent = "Error saving recording.";
     }
 
     // Reset UI
-    resetUI();
+    setTimeout(resetUI, 3000);
   };
 
   // Start recording (chunk every 1 second)
