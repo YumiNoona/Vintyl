@@ -5,52 +5,60 @@ import { client } from "@/lib/prisma";
 
 export const onAuthenticatedUser = async () => {
   try {
+    console.log("🔐 AUTH START");
+
     const user = await currentUser();
+    console.log("👤 CLERK USER:", user?.id, user?.emailAddresses?.[0]?.emailAddress);
+
     if (!user) {
+      console.log("❌ No Clerk user found");
       return { status: 403 };
     }
 
     const userExists = await client.user.findUnique({
       where: { clerkId: user.id },
       include: {
-        workspace: {
-          where: { user: { clerkId: user.id } },
-        },
+        workspace: true,
         subscription: {
           select: { plan: true },
         },
       },
     });
+
+    console.log("🔍 EXISTING USER:", userExists?.id || "NOT FOUND");
 
     if (userExists) {
       return { status: 200, user: userExists };
     }
 
+    console.log("🆕 Creating new user...");
+
     const newUser = await client.user.create({
       data: {
         clerkId: user.id,
         email: user.emailAddresses[0]?.emailAddress,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
         image: user.imageUrl,
         studio: { create: {} },
         subscription: { create: {} },
         workspace: {
           create: {
-            name: `${user.firstName}'s Workspace`,
+            name: `${user.firstName || "My"}'s Workspace`,
             type: "PERSONAL",
           },
         },
       },
       include: {
-        workspace: {
-          where: { user: { clerkId: user.id } },
-        },
+        workspace: true,
         subscription: {
           select: { plan: true },
         },
       },
     });
+
+    console.log("✅ NEW USER CREATED:", newUser.id);
+    console.log("📁 WORKSPACE:", newUser.workspace?.[0]?.id);
 
     if (newUser) {
       return { status: 201, user: newUser };
@@ -58,7 +66,7 @@ export const onAuthenticatedUser = async () => {
 
     return { status: 400 };
   } catch (error) {
-    console.error("Auth error:", error);
+    console.error("❌ AUTH ERROR:", error);
     return { status: 500 };
   }
 };
