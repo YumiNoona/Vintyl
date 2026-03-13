@@ -32,8 +32,8 @@ A **Loom-clone** SaaS application for recording, sharing, and collaborating on v
 | **State** | React Query (TanStack) | ✅ |
 | **Payments** | Stripe (checkout, webhooks, portal) | ✅ |
 | **Desktop** | Electron.js (screen recorder) | ✅ |
-| **AI** | OpenAI, Whisper | 🚧 |
-| **Storage** | AWS S3 + CloudFront | 🚧 |
+| **AI** | OpenAI (Whisper, GPT-4o-mini) | ✅ |
+| **Storage** | AWS S3 + CloudFront | ✅ |
 
 ## 📁 Project Structure
 
@@ -42,22 +42,22 @@ Venus/
 ├── prisma/
 │   └── schema.prisma          # 11 models, 3 enums
 ├── src/
-│   ├── actions/               # Server actions (user, workspace, video, payment)
+│   ├── actions/               # Server actions (user, workspace, video, payment, ai)
 │   ├── app/
 │   │   ├── (website)/         # Landing page
 │   │   ├── auth/              # Sign-in, sign-up, callback
 │   │   ├── dashboard/         # Protected workspace pages
-│   │   ├── preview/           # Video preview page
+│   │   ├── preview/           # Video preview page (+ comments, AI summary)
 │   │   ├── payment/           # Stripe success/cancel pages
-│   │   └── api/               # Debug, health, webhook routes
+│   │   └── api/               # AI routes, Upload routes, Health endpoints
 │   ├── components/
 │   │   ├── global/            # Sidebar, navbar, folders, videos
 │   │   ├── theme/             # Theme provider
 │   │   └── ui/                # ShadCN components
 │   ├── hooks/                 # useQueryData, useMutationData, useSearch, useZodForm
-│   ├── lib/                   # Prisma client, Stripe client, utils
+│   ├── lib/                   # Prisma, Stripe, OpenAI, S3 singletons
 │   └── types/                 # TypeScript type definitions
-├── desktop/                   # Electron desktop recorder app
+├── desktop/                   # Electron desktop recorder app (uploads to S3 directly)
 └── public/                    # Static assets
 ```
 
@@ -69,6 +69,8 @@ Venus/
 - [Clerk](https://clerk.com) account (free)
 - [Neon](https://neon.tech) database (free)
 - [Stripe](https://stripe.com) account (for payments)
+- [OpenAI](https://platform.openai.com) account (for AI features)
+- AWS Account (for S3 and CloudFront)
 
 ### Setup
 
@@ -103,6 +105,16 @@ Venus/
    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
    STRIPE_SUBSCRIPTION_PRICE_ID=price_...
    STRIPE_WEBHOOK_SECRET=whsec_...
+
+   # AI / OpenAI
+   OPENAI_API_KEY=sk-...
+
+   # AWS S3 / CloudFront
+   AWS_ACCESS_KEY_ID=AKIA...
+   AWS_SECRET_ACCESS_KEY=...
+   AWS_REGION=us-east-1
+   AWS_BUCKET_NAME=your-bucket-name
+   CLOUDFRONT_URL=https://your-distribution.cloudfront.net
 
    # App
    NEXT_PUBLIC_HOST_URL=http://localhost:3000
@@ -142,11 +154,11 @@ npm run dev
 - [x] Auth callback — login → DB user/workspace → dashboard
 - [x] Electron desktop app (screen recorder)
 - [x] Stripe payment integration (checkout, webhooks, portal)
-- [x] Debug & health endpoints
-- [ ] AI features (transcription, auto-titles, summaries)
-- [ ] AWS S3 + CloudFront video storage & streaming
-- [ ] Video comments with real-time updates
-- [ ] Workspace invite flow via email
+- [x] Debug & health endpoints (`/api/health`)
+- [x] AI features (transcription, auto-titles, summaries)
+- [x] AWS S3 + CloudFront video storage & direct desktop uploads
+- [x] Video comments with real-time updates
+- [x] Workspace invite flow via email
 - [ ] Production deployment
 
 ## 🐛 Debugging
