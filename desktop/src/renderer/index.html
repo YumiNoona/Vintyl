@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Venus Desktop</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Title Bar -->
+  <div class="title-bar">
+    <div class="title-bar-left">
+      <div class="logo">🪐</div>
+      <span class="app-name">Venus</span>
+    </div>
+    <div class="title-bar-controls">
+      <button id="minimize-btn" class="control-btn">—</button>
+      <button id="close-btn" class="control-btn close">✕</button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container">
+    <!-- Status -->
+    <div class="status-bar" id="status-bar">
+      <div class="status-dot disconnected" id="status-dot"></div>
+      <span id="status-text">Disconnected</span>
+    </div>
+
+    <!-- Source Selector -->
+    <div class="section">
+      <label class="label">Screen Source</label>
+      <select id="source-select" class="select">
+        <option value="">Select a source...</option>
+      </select>
+      <button id="refresh-sources" class="btn btn-secondary btn-sm">
+        ↻ Refresh Sources
+      </button>
+    </div>
+
+    <!-- Preview -->
+    <div class="preview-container">
+      <video id="preview" autoplay muted></video>
+      <div class="preview-placeholder" id="preview-placeholder">
+        <p>Select a source to preview</p>
+      </div>
+    </div>
+
+    <!-- Webcam Toggle -->
+    <div class="section row">
+      <label class="label">Include Webcam</label>
+      <label class="toggle">
+        <input type="checkbox" id="webcam-toggle" />
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <!-- Recording Controls -->
+    <div class="controls">
+      <button id="start-btn" class="btn btn-primary" disabled>
+        ⏺ Start Recording
+      </button>
+      <button id="stop-btn" class="btn btn-danger" disabled style="display:none">
+        ⏹ Stop Recording
+      </button>
+    </div>
+
+    <!-- Timer -->
+    <div class="timer" id="timer" style="display:none">
+      <span id="timer-text">00:00</span>
+    </div>
+  </div>
+
+  <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
