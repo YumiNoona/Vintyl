@@ -1,14 +1,37 @@
+"use client";
+
 import React from "react";
-import { onAuthenticatedUser } from "@/actions/user";
-import { redirect } from "next/navigation";
-import { CreditCard, Zap } from "lucide-react";
+import { CreditCard, Zap, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { createCheckoutSession } from "@/actions/payment";
+import { useQueryData } from "@/hooks/useQueryData";
+import { getSubscription } from "@/actions/payment";
+import { toast } from "sonner";
 
-export default async function BillingPage() {
-  const auth = await onAuthenticatedUser();
-  if (!auth.user) return redirect("/auth/sign-in");
+export default function BillingPage() {
+  const { data: subData, isFetched } = useQueryData(
+    ["user-subscription"],
+    getSubscription
+  );
+  const [loading, setLoading] = React.useState(false);
 
-  const plan = auth.user.subscription?.plan || "FREE";
+  const plan = (subData as any)?.data?.plan || "FREE";
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    try {
+      const result = await createCheckoutSession();
+      if (result.status === 200 && result.data) {
+        window.location.href = result.data;
+      } else {
+        toast.error("Failed to create checkout session");
+      }
+    } catch {
+      toast.error("Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div>
@@ -66,12 +89,18 @@ export default async function BillingPage() {
             <li>✓ AI features (transcription, summaries)</li>
             <li>✓ Invite team members</li>
           </ul>
-          {plan === "FREE" && (
-            <Button className="w-full bg-purple-600 hover:bg-purple-700">
+          <Button
+            onClick={handleUpgrade}
+            disabled={loading}
+            className="w-full bg-purple-600 hover:bg-purple-700"
+          >
+            {loading ? (
+              <Loader2 size={16} className="animate-spin mr-2" />
+            ) : (
               <Zap size={16} className="mr-2" />
-              Upgrade to Pro
-            </Button>
-          )}
+            )}
+            {plan === "PRO" ? "Manage Subscription" : "Upgrade to Pro"}
+          </Button>
         </div>
       </div>
     </div>
