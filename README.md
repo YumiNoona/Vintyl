@@ -6,32 +6,34 @@ A **Loom-clone** SaaS application for recording, sharing, and collaborating on v
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![Prisma](https://img.shields.io/badge/Prisma-7-2D3748?logo=prisma)
 ![Clerk](https://img.shields.io/badge/Auth-Clerk-6C47FF?logo=clerk)
+![Stripe](https://img.shields.io/badge/Payments-Stripe-635bff?logo=stripe)
+![Electron](https://img.shields.io/badge/Desktop-Electron-47848F?logo=electron)
 
 ## ✨ Features
 
-- 🎥 **Screen Recording** — Record screen, camera, or both via desktop app
-- 🤖 **AI Summaries** — Auto-generated titles, descriptions & transcriptions
+- 🎥 **Screen Recording** — Record screen, camera, or both via Electron desktop app
+- 🤖 **AI Summaries** — Auto-generated titles, descriptions & transcriptions *(coming soon)*
 - 👥 **Team Workspaces** — Organize videos, invite members, collaborate
 - 🔗 **Instant Sharing** — Share videos via link, no downloads needed
 - 📁 **Folder Organization** — Create folders, rename inline, drag-and-drop
 - 🔔 **Notifications** — Real-time activity feed
 - 💳 **Billing** — Free & Pro plans with Stripe integration
 - 🌙 **Dark Mode** — Beautiful dark theme with light/system options
+- 🖥 **Desktop Recorder** — Electron app with source selection, webcam toggle, timer
 
 ## 🛠 Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 16, React, TypeScript, Tailwind CSS |
-| **UI** | ShadCN UI (50+ components) |
-| **Auth** | Clerk (Google OAuth) |
-| **Database** | Neon (PostgreSQL) + Prisma ORM |
-| **State** | React Query (TanStack) |
-| **Backend** | Express.js + Socket.IO *(coming soon)* |
-| **Desktop** | Electron.js *(coming soon)* |
-| **AI** | OpenAI, Whisper *(coming soon)* |
-| **Storage** | AWS S3 + CloudFront *(coming soon)* |
-| **Payments** | Stripe *(coming soon)* |
+| Layer | Technology | Status |
+|-------|-----------|--------|
+| **Frontend** | Next.js 16, React, TypeScript, Tailwind CSS | ✅ |
+| **UI** | ShadCN UI (50+ components) | ✅ |
+| **Auth** | Clerk (Google OAuth) | ✅ |
+| **Database** | Neon (PostgreSQL) + Prisma 7 ORM | ✅ |
+| **State** | React Query (TanStack) | ✅ |
+| **Payments** | Stripe (checkout, webhooks, portal) | ✅ |
+| **Desktop** | Electron.js (screen recorder) | ✅ |
+| **AI** | OpenAI, Whisper | 🚧 |
+| **Storage** | AWS S3 + CloudFront | 🚧 |
 
 ## 📁 Project Structure
 
@@ -40,22 +42,23 @@ Venus/
 ├── prisma/
 │   └── schema.prisma          # 11 models, 3 enums
 ├── src/
-│   ├── actions/               # Server actions (user, workspace, video)
+│   ├── actions/               # Server actions (user, workspace, video, payment)
 │   ├── app/
 │   │   ├── (website)/         # Landing page
 │   │   ├── auth/              # Sign-in, sign-up, callback
 │   │   ├── dashboard/         # Protected workspace pages
-│   │   └── preview/           # Video preview page
+│   │   ├── preview/           # Video preview page
+│   │   ├── payment/           # Stripe success/cancel pages
+│   │   └── api/               # Debug, health, webhook routes
 │   ├── components/
-│   │   ├── global/            # Sidebar, navbar, modal, loader, search,
-│   │   │                      # folders, videos, workspace content
+│   │   ├── global/            # Sidebar, navbar, folders, videos
 │   │   ├── theme/             # Theme provider
 │   │   └── ui/                # ShadCN components
 │   ├── hooks/                 # useQueryData, useMutationData, useSearch, useZodForm
-│   ├── lib/                   # Prisma client, utils
-│   ├── react-query/           # Query client provider
+│   ├── lib/                   # Prisma client, Stripe client, utils
 │   └── types/                 # TypeScript type definitions
-└── public/                    # Static assets (logo)
+├── desktop/                   # Electron desktop recorder app
+└── public/                    # Static assets
 ```
 
 ## 🚀 Getting Started
@@ -65,6 +68,7 @@ Venus/
 - Node.js 20+
 - [Clerk](https://clerk.com) account (free)
 - [Neon](https://neon.tech) database (free)
+- [Stripe](https://stripe.com) account (for payments)
 
 ### Setup
 
@@ -84,7 +88,7 @@ Venus/
    Create a `.env` file in the root:
    ```env
    # Database (Neon)
-   DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
+   DATABASE_URL=postgresql://user:password@host/dbname?sslmode=require
 
    # Clerk
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
@@ -93,6 +97,12 @@ Venus/
    NEXT_PUBLIC_CLERK_SIGN_UP_URL=/auth/sign-up
    NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/auth/callback
    NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/auth/callback
+
+   # Stripe
+   STRIPE_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+   STRIPE_SUBSCRIPTION_PRICE_ID=price_...
+   STRIPE_WEBHOOK_SECRET=whsec_...
 
    # App
    NEXT_PUBLIC_HOST_URL=http://localhost:3000
@@ -111,6 +121,14 @@ Venus/
 
 6. **Open** `http://localhost:3000`
 
+### Desktop App (Electron)
+
+```bash
+cd desktop
+npm install
+npm run dev
+```
+
 ## 📊 Database Schema
 
 11 models: `User`, `Media`, `Workspace`, `Folder`, `Video`, `Comment`, `Subscription`, `Member`, `Notification`, `Invite`, `Trial`
@@ -121,11 +139,26 @@ Venus/
 
 - [x] Next.js web app with auth & dashboard
 - [x] Landing page with pricing
-- [ ] Express server (Socket.IO for real-time video streaming)
-- [ ] Electron desktop app (screen recorder)
-- [ ] Stripe payment integration
+- [x] Auth callback — login → DB user/workspace → dashboard
+- [x] Electron desktop app (screen recorder)
+- [x] Stripe payment integration (checkout, webhooks, portal)
+- [x] Debug & health endpoints
 - [ ] AI features (transcription, auto-titles, summaries)
-- [ ] AWS S3 + CloudFront streaming
+- [ ] AWS S3 + CloudFront video storage & streaming
+- [ ] Video comments with real-time updates
+- [ ] Workspace invite flow via email
+- [ ] Production deployment
+
+## 🐛 Debugging
+
+Visit `http://localhost:3000/api/debug` to check system status:
+```json
+{
+  "clerkUser": { "id": "...", "email": "..." },
+  "database": "connected",
+  "env": { "DATABASE_URL": "present" }
+}
+```
 
 ## 📝 License
 
@@ -133,4 +166,4 @@ MIT
 
 ---
 
-Built with ❤️ using Next.js, Clerk, Prisma & ShadCN UI
+Built with ❤️ using Next.js, Clerk, Prisma, Stripe & ShadCN UI

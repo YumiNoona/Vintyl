@@ -278,3 +278,49 @@ export const moveVideoLocation = async (
     return { status: 500, data: "Internal error" };
   }
 };
+
+export const acceptInvite = async (inviteId: string) => {
+  try {
+    const user = await currentUser();
+    if (!user) return { status: 401 };
+
+    const dbUser = await client.user.findUnique({
+      where: { clerkId: user.id },
+      select: { id: true },
+    });
+
+    if (!dbUser) return { status: 404, data: "User not found" };
+
+    const invite = await client.invite.findUnique({
+      where: { id: inviteId },
+      include: { workspace: { select: { name: true } } },
+    });
+
+    if (!invite) return { status: 404, data: "Invite not found" };
+    if (invite.accepted) return { status: 400, data: "Invite already accepted" };
+
+    // Accept invite and add as member
+    await client.$transaction([
+      client.invite.update({
+        where: { id: inviteId },
+        data: { accepted: true },
+      }),
+      client.member.create({
+        data: {
+          userId: dbUser.id,
+          workspaceId: invite.workspaceId,
+        },
+      }),
+      client.notification.create({
+        data: {
+          userId: invite.senderId!,
+          content: `${user.firstName} accepted the invite to ${invite.workspace.name}`,
+        },
+      }),
+    ]);
+
+    return { status: 200, data: "Invite accepted" };
+  } catch (error) {
+    return { status: 500, data: "Internal error" };
+  }
+};
