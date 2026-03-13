@@ -1,37 +1,30 @@
 import { PrismaClient } from "@/generated/prisma"
-import { PrismaNeon } from "@prisma/adapter-neon"
-import { Pool } from "@neondatabase/serverless"
-import { neonConfig } from "@neondatabase/serverless"
-import ws from "ws"
-
-neonConfig.webSocketConstructor = ws
+import { PrismaPg } from "@prisma/adapter-pg"
+import pg from "pg"
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-function createPrismaClient() {
-  const connectionString = process.env.DATABASE_URL
+function getClient(): PrismaClient {
+  if (globalForPrisma.prisma) return globalForPrisma.prisma
 
-  if (!connectionString) {
-    throw new Error("DATABASE_URL is missing")
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error("DATABASE_URL is missing")
+
+  const pool = new pg.Pool({ connectionString: url, ssl: { rejectUnauthorized: false } })
+  const adapter = new PrismaPg(pool)
+  const prisma = new PrismaClient({ adapter, log: ["error"] })
+
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = prisma
   }
 
-  const pool = new Pool({
-    connectionString,
-  })
-
-  const adapter = new PrismaNeon(pool)
-
-  return new PrismaClient({
-    adapter,
-    log: ["error"],
-  })
+  return prisma
 }
 
-export const client =
-  globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = client
-}
+export const client = new Proxy({} as PrismaClient, {
+  get(_, prop) {
+    return (getClient() as any)[prop]
+  },
+})

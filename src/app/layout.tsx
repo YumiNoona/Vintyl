@@ -5,9 +5,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme";
 import { ReactQueryProvider } from "@/react-query";
 import { Toaster } from "sonner";
-import { checkDatabase } from "@/lib/db-check";
 
-checkDatabase();
 
 const manrope = Manrope({
   subsets: ["latin"],
