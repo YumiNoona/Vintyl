@@ -13,7 +13,7 @@ type RecordingContextType = {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   setRecordedVideo: (url: string | null) => void;
-  uploadVideo: (workspaceId: string, clerkId: string) => Promise<void>;
+  uploadVideo: (workspaceId: string, clerkId: string, folderId?: string) => Promise<void>;
 };
 
 const RecordingContext = createContext<RecordingContextType | undefined>(undefined);
@@ -67,7 +67,7 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
     recorderRef.current?.stop();
   };
 
-  const uploadVideo = async (workspaceId: string, clerkId: string) => {
+  const uploadVideo = async (workspaceId: string, clerkId: string, folderId?: string) => {
     if (!recordedVideo) return;
     setIsUploading(true);
 
@@ -76,6 +76,7 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
       const videoBlob = await response.blob();
       const fileName = `web-record-${Date.now()}.webm`;
       
+      console.log("🚀 Starting upload to /api/upload...");
       const res = await fetch("/api/upload", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,27 +85,42 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
           contentType: videoBlob.type,
           workspaceId,
           clerkId,
+          folderId,
         })
       });
 
+      if (!res.ok) {
+        console.error(`❌ Upload API failed: ${res.status} ${res.statusText}`);
+        const errorData = await res.json().catch(() => ({}));
+        console.error("Error data:", errorData);
+        throw new Error(errorData.error || "Upload API failed");
+      }
+
       const data = await res.json();
+      console.log("✅ Upload URL received:", data.uploadUrl ? "Yes" : "No");
       
       if (data.uploadUrl) {
-        await fetch(data.uploadUrl, {
+        console.log("📤 Putting blob to S3...");
+        const putRes = await fetch(data.uploadUrl, {
           method: "PUT",
           headers: { "Content-Type": videoBlob.type },
           body: videoBlob,
         });
 
+        if (!putRes.ok) {
+          console.error(`❌ S3 PUT failed: ${putRes.status} ${putRes.statusText}`);
+          throw new Error("Failed to upload binary to storage");
+        }
+
         if (data.videoId) {
-           setVideoId(data.videoId);
-           transcribeVideo(data.videoId).catch(console.error);
-           toast.success("Video uploaded successfully!");
+            setVideoId(data.videoId);
+            transcribeVideo(data.videoId).catch(console.error);
+            toast.success("Video uploaded successfully!");
         }
       }
-    } catch (error) {
-      console.error("Upload failed", error);
-      toast.error("Failed to upload video");
+    } catch (error: any) {
+      console.error("🚨 UPLOAD CRITICAL ERROR:", error);
+      toast.error(`Export failed: ${error.message || "Network Error"}`);
     } finally {
       setIsUploading(false);
     }

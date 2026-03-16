@@ -30,10 +30,10 @@ export default function Modal({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger render={trigger} />
-      <DialogContent className="max-w-xl bg-[#111111] border-white/5 backdrop-blur-3xl shadow-2xl">
+      <DialogContent className="max-w-xl bg-card border-border backdrop-blur-3xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-bold text-white">{title}</DialogTitle>
-          <DialogDescription className="text-neutral-400">{description}</DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-foreground">{title}</DialogTitle>
+          <DialogDescription className="text-muted-foreground">{description}</DialogDescription>
         </DialogHeader>
         {typeof children === 'function' 
           ? (children as any)({ setOpen }) 

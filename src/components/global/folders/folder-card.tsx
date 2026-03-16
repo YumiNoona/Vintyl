@@ -48,7 +48,12 @@ export default function FolderCard({
   const folderCardRef = useRef<HTMLDivElement>(null);
   const [onRename, setOnRename] = useState(false);
   const [isMoveOpen, setIsMoveOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [selectedWorkspace, setSelectedWorkspace] = useState(workspaceId);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: workspaces } = useQueryData(["user-workspaces"], getWorkspaces);
   const workspaceList = (workspaces as WorkspaceProps)?.data?.workspace || [];
@@ -141,6 +146,8 @@ export default function FolderCard({
       }
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <ContextMenu>

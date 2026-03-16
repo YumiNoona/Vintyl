@@ -12,15 +12,16 @@ A seamless video communication platform that empowers users to record, share, an
 ## ✨ Features
 
 - 🎥 **Screen Recording** — Record screen, camera, or both via Electron desktop app
-- 🤖 **AI Intelligence** — Auto-generated titles, descriptions & transcriptions using GPT-4o-mini
+- 🤖 **AI Intelligence**: Automated transcriptions and summaries powered by OpenAI Whisper and GPT-4o, with built-in error reporting.
 - 👥 **Team Workspaces** — Organize videos, invite members, collaborate async
 - 🔗 **Instant Sharing** — Share videos via link, no downloads needed
-- 📁 **Folder Organization** — Create folders, rename inline, move locations
+- 📁 **Workspace Folder Integration**: Select specific workspace folders during the upload workflow for better library management.
 - 🔔 **Notifications** — Real-time activity feed for new comments and invites
 - 💳 **Billing** — Free & Pro plans with Stripe integration
 - ✨ **Premium UI/UX** — Vercel-inspired high-contrast light and dark themes
 - ⏱️ **Persistent UX** — Global recording overlay that stays active across navigation
 - 🖥 **Desktop Recorder** — Electron app with source selection, webcam toggle, timer
+- 🎭 **Advanced Post-Recording Editor**: Trim, crop, and adjust your clips with an interactive editing suite before sharing.
 
 ## 🛠 Tech Stack
 

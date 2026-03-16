@@ -8,14 +8,23 @@ export async function POST(req: NextRequest) {
     let authUser = await currentUser()
     
     const body = await req.json()
-    const { fileName, contentType, workspaceId, clerkId } = body
+    const { fileName, contentType, workspaceId, clerkId, folderId } = body
 
-    // Fallback for desktop app testing
-    if (!authUser && !clerkId) {
+    const clerkUserId = authUser?.id || clerkId;
+
+    if (!clerkUserId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const userId = authUser?.id || clerkId;
+    // Resolve Clerk ID to internal Prisma User ID
+    const internalUser = await client.user.findUnique({
+      where: { clerkId: clerkUserId },
+      select: { id: true }
+    });
+
+    if (!internalUser) {
+      return NextResponse.json({ error: "User not found in database" }, { status: 404 })
+    }
 
     if (!fileName || !contentType || !workspaceId) {
       return NextResponse.json(
@@ -29,7 +38,16 @@ export async function POST(req: NextRequest) {
     const ext = fileName.split(".").pop() || "webm"
     const key = `videos/${workspaceId}/${videoId}.${ext}`
 
-    const uploadUrl = await getUploadUrl(key, contentType)
+    // Check for placeholder credentials and use mock if needed
+    const isMock = process.env.AWS_ACCESS_KEY_ID === "your_access_key" || !process.env.AWS_ACCESS_KEY_ID
+    
+    let uploadUrl: string
+    if (isMock) {
+      console.log("🛠️ Using MOCK upload path for development")
+      uploadUrl = `${process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3000"}/api/upload/mock`
+    } else {
+      uploadUrl = await getUploadUrl(key, contentType)
+    }
 
     // Save video record in Prisma
     const cloudFrontUrl = process.env.CLOUDFRONT_URL
@@ -41,7 +59,8 @@ export async function POST(req: NextRequest) {
         title: fileName,
         source: sourcePath,
         workspaceId,
-        userId: userId!,
+        folderId: folderId || null,
+        userId: internalUser.id,
         processing: true,
       }
     })

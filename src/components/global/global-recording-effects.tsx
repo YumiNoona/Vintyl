@@ -27,7 +27,7 @@ export default function GlobalRecordingEffects() {
       {recordedVideo && (
         <RecordPreview 
           video={recordedVideo}
-          onUpload={() => user && uploadVideo(workspaceId, user.id)}
+          onUpload={(folderId) => user && uploadVideo(workspaceId, user.id, folderId)}
           onDiscard={() => {
             setRecordedVideo(null);
           }}

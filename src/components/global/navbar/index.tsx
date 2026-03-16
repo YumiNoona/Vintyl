@@ -4,7 +4,7 @@ import React from "react";
 import { UserButton } from "@clerk/nextjs";
 import { useQueryData } from "@/hooks/useQueryData";
 import { getNotifications } from "@/actions/user";
-import { Bell, MonitorUp, Download } from "lucide-react";
+import { Bell, MonitorUp, Download, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/global/modal";
@@ -66,46 +66,68 @@ export default function DashboardNavbar({
           description="Choose how you would like to record your video."
         >
           {({ setOpen }: { setOpen: (open: boolean) => void }) => (
-            <div className="flex flex-col gap-4 mt-4">
-              <div className="border border-purple-500/20 rounded-xl p-4 flex flex-col gap-3 bg-purple-500/5 transition-colors hover:bg-purple-500/10">
-                <div>
-                  <h4 className="font-bold text-foreground">Desktop Recorder (Recommended)</h4>
-                  <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                    <li>Full screen & camera recording</li>
-                    <li>System audio capture</li>
-                    <li>Best overall performance</li>
-                  </ul>
+            <div className="flex flex-col gap-5 mt-6">
+              <div className="group border border-purple-500/20 rounded-2xl p-6 flex flex-col gap-4 bg-purple-500/5 transition-all hover:bg-purple-500/10 hover:border-purple-500/40 shadow-sm">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-foreground text-lg tracking-tight">Desktop Recorder</h4>
+                    <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Recommended</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
+                    <MonitorUp size={20} />
+                  </div>
                 </div>
+                <ul className="text-sm text-muted-foreground/80 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <div className="size-1 rounded-full bg-purple-500" />
+                    Full screen & camera recording
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="size-1 rounded-full bg-purple-500" />
+                    System audio capture
+                  </li>
+                </ul>
                 <Button
                   onClick={() => {
                     setOpen(false);
                     handleOpenDesktopApp();
                   }}
-                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700 mt-2 shadow-lg shadow-purple-500/20"
+                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-xl font-bold mt-2 shadow-lg shadow-purple-500/20 active:scale-95 transition-all"
                 >
-                  <MonitorUp size={16} />
-                  Open Desktop App
+                  <Download size={18} />
+                  Get Desktop App
                 </Button>
               </div>
 
-              <div className="border border-border rounded-xl p-4 flex flex-col gap-3 bg-secondary/30 transition-colors hover:bg-secondary/50">
-                <div>
-                  <h4 className="font-bold text-foreground">Browser Recorder (Limited)</h4>
-                  <ul className="text-xs text-muted-foreground mt-2 space-y-1 list-disc list-inside">
-                    <li>Screen capture only</li>
-                    <li>No system audio support</li>
-                    <li>May have browser restrictions</li>
-                  </ul>
+              <div className="group border border-border rounded-2xl p-6 flex flex-col gap-4 bg-secondary/20 transition-all hover:bg-secondary/40 hover:border-foreground/10">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1.5">
+                    <h4 className="font-bold text-foreground text-lg tracking-tight">Browser Recorder</h4>
+                    <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Direct & Fast</p>
+                  </div>
+                  <div className="p-2 rounded-xl bg-secondary text-muted-foreground">
+                    <MonitorUp size={20} />
+                  </div>
                 </div>
+                <ul className="text-sm text-muted-foreground/80 space-y-2">
+                  <li className="flex items-center gap-2">
+                    <div className="size-1 rounded-full bg-muted-foreground/40" />
+                    No software required
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <div className="size-1 rounded-full bg-muted-foreground/40" />
+                    Limited to active tab/window
+                  </li>
+                </ul>
                 <Button
                   variant="outline"
-                  className="w-full gap-2 border-border hover:bg-secondary mt-2 shadow-sm"
+                  className="w-full gap-2 border-border bg-background hover:bg-secondary text-foreground h-12 rounded-xl font-bold mt-2 shadow-sm active:scale-95 transition-all"
                   onClick={() => {
                     setOpen(false);
                     router.push(`/dashboard/${workspaceId}/record`);
                   }}
                 >
-                  <MonitorUp size={16} />
+                  <Plus size={18} className="rotate-45" />
                   Record in Browser
                 </Button>
               </div>

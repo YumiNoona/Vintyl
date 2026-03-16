@@ -55,11 +55,16 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
     getWorkspaces
   );
 
+  const [mounted, setMounted] = React.useState(false);
   const [isCreateOpen, setIsCreateOpen] = React.useState(false);
   const [isRenameOpen, setIsRenameOpen] = React.useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = React.useState(false);
   const [newWorkspaceName, setNewWorkspaceName] = React.useState("");
   const [renameValue, setRenameValue] = React.useState("");
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { data: workspace } = data as WorkspaceProps;
 
@@ -197,6 +202,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      {/* Modals */}
       {/* Modals */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="bg-card border-border text-card-foreground rounded-2xl shadow-2xl">

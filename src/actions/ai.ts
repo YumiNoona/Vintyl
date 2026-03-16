@@ -17,6 +17,11 @@ export const transcribeVideo = async (videoId: string) => {
     if (!video) return { status: 404, data: "Video not found" };
     if (video.transcript) return { status: 200, data: video.transcript };
 
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey || apiKey === "sk-your_key_here") {
+      return { status: 400, data: "OpenAI API Key is missing or invalid. Please add your key to the .env file." };
+    }
+
     // Fetch the video/audio file
     const response = await fetch(video.source);
     const audioBlob = await response.blob();
@@ -48,6 +53,11 @@ export const transcribeVideo = async (videoId: string) => {
  */
 export const generateVideoSummary = async (videoId: string) => {
   try {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey || apiKey === "sk-your_key_here") {
+      return { status: 400, data: "OpenAI API Key is missing or invalid. Please add your key to the .env file." };
+    }
+
     const video = await client.video.findUnique({
       where: { id: videoId },
       select: { transcript: true, summary: true, title: true },
