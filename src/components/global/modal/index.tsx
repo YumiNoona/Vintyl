@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 
 type ModalProps = {
-  trigger: React.ReactElement;
+  trigger: React.ReactNode;
   children: React.ReactNode | (({ setOpen }: { setOpen: (open: boolean) => void }) => React.ReactNode);
   title: string;
   description: string;
@@ -29,7 +29,7 @@ export default function Modal({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger render={trigger} />
+      <DialogTrigger render={trigger as any} />
       <DialogContent className="max-w-xl bg-card border-border backdrop-blur-3xl shadow-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-bold text-foreground">{title}</DialogTitle>
