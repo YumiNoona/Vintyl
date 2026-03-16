@@ -9,7 +9,7 @@ export const s3 = new S3Client({
   },
 });
 
-const BUCKET = process.env.AWS_BUCKET_NAME || "venus";
+const BUCKET = process.env.AWS_BUCKET_NAME || "vintyl";
 const CLOUDFRONT = process.env.CLOUDFRONT_URL;
 
 /**

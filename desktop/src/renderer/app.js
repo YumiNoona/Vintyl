@@ -1,4 +1,4 @@
-// Venus Desktop — Renderer Script
+// Vintyl Desktop — Renderer Script
 // socket.io-client is loaded via CDN in index.html
 
 // ===== Config =====
@@ -166,7 +166,7 @@ async function startRecording() {
 
     // Create downloadable blob
     const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const filename = `venus-recording-${Date.now()}.webm`;
+    const filename = `vintyl-recording-${Date.now()}.webm`;
 
     try {
       // 1. Get Presigned URL

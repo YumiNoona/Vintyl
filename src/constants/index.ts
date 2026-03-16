@@ -1,29 +1,29 @@
 import {
   Library,
   CreditCard,
-  Bell,
-  Settings,
+  Users,
+  Activity,
 } from "lucide-react";
 
 export const MENU_ITEMS = [
   {
-    title: "My Library",
+    title: "Library",
     href: "",
     icon: Library,
   },
   {
-    title: "Notifications",
-    href: "/notifications",
-    icon: Bell,
+    title: "Activity",
+    href: "/activity",
+    icon: Activity,
+  },
+  {
+    title: "Members",
+    href: "/members",
+    icon: Users,
   },
   {
     title: "Billing",
     href: "/billing",
     icon: CreditCard,
-  },
-  {
-    title: "Settings",
-    href: "/settings",
-    icon: Settings,
   },
 ] as const;

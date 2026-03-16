@@ -1,6 +1,6 @@
-# 🪐 Venus — AI-Powered Video Sharing Platform
+# 🪐 Vintyl — AI-Powered Video Sharing Platform
 
-A **Loom-clone** SaaS application for recording, sharing, and collaborating on videos with AI-powered features.
+A seamless video communication platform that empowers users to record, share, and collaborate on videos effortlessly. Vintyl includes advanced AI-powered transcriptions and auto-generated summaries, enabling teams to organize content in shared workspaces and enhance their asynchronous workflows.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
@@ -12,13 +12,14 @@ A **Loom-clone** SaaS application for recording, sharing, and collaborating on v
 ## ✨ Features
 
 - 🎥 **Screen Recording** — Record screen, camera, or both via Electron desktop app
-- 🤖 **AI Summaries** — Auto-generated titles, descriptions & transcriptions *(coming soon)*
-- 👥 **Team Workspaces** — Organize videos, invite members, collaborate
+- 🤖 **AI Intelligence** — Auto-generated titles, descriptions & transcriptions using GPT-4o-mini
+- 👥 **Team Workspaces** — Organize videos, invite members, collaborate async
 - 🔗 **Instant Sharing** — Share videos via link, no downloads needed
-- 📁 **Folder Organization** — Create folders, rename inline, drag-and-drop
-- 🔔 **Notifications** — Real-time activity feed
+- 📁 **Folder Organization** — Create folders, rename inline, move locations
+- 🔔 **Notifications** — Real-time activity feed for new comments and invites
 - 💳 **Billing** — Free & Pro plans with Stripe integration
-- 🌙 **Dark Mode** — Beautiful dark theme with light/system options
+- ✨ **Premium UI/UX** — Vercel-inspired high-contrast light and dark themes
+- ⏱️ **Persistent UX** — Global recording overlay that stays active across navigation
 - 🖥 **Desktop Recorder** — Electron app with source selection, webcam toggle, timer
 
 ## 🛠 Tech Stack
@@ -38,7 +39,7 @@ A **Loom-clone** SaaS application for recording, sharing, and collaborating on v
 ## 📁 Project Structure
 
 ```
-Venus/
+Vintyl/
 ├── prisma/
 │   └── schema.prisma          # 11 models, 3 enums
 ├── src/
@@ -76,8 +77,8 @@ Venus/
 
 1. **Clone the repo**
    ```bash
-   git clone https://github.com/YumiNoona/Venus.git
-   cd Venus
+   git clone https://github.com/YumiNoona/Vintyl.git
+   cd Vintyl
    ```
 
 2. **Install dependencies**
@@ -159,7 +160,10 @@ npm run dev
 - [x] AWS S3 + CloudFront video storage & direct desktop uploads
 - [x] Video comments with real-time updates
 - [x] Workspace invite flow via email
-- [ ] Production deployment
+- [x] Unified "Vercel-inspired" high-contrast design
+- [x] Global, persistent recording overlay
+- [x] Cross-workspace folder/video organization
+- [x] Production readiness & documentation audit
 
 ## 🐛 Debugging
 

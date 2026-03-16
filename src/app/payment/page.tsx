@@ -22,7 +22,7 @@ export default async function PaymentPage({
             </div>
             <h1 className="text-3xl font-bold mb-3">Payment Successful! 🎉</h1>
             <p className="text-neutral-400 mb-8">
-              Welcome to Venus Pro! You now have access to unlimited
+              Welcome to Vintyl Pro! You now have access to unlimited
               workspaces, AI features, and team collaboration.
             </p>
           </>

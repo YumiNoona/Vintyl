@@ -15,6 +15,8 @@ import {
 import React from "react";
 import Sidebar from "@/components/global/sidebar";
 import DashboardNavbar from "@/components/global/navbar";
+import { RecordingProvider } from "@/context/RecordingContext";
+import GlobalRecordingEffects from "@/components/global/global-recording-effects";
 
 export default async function WorkspaceLayout({
   children,
@@ -61,13 +63,18 @@ export default async function WorkspaceLayout({
 
   return (
     <HydrationBoundary state={dehydrate(query)}>
-      <div className="flex h-screen w-screen">
-        <Sidebar activeWorkspaceId={workspaceId} />
-        <DashboardNavbar workspaceId={workspaceId} />
-        <div className="w-full pt-28 p-6 overflow-y-scroll overflow-x-hidden">
-          <div className="mt-4">{children}</div>
+      <RecordingProvider>
+        <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
+          <Sidebar activeWorkspaceId={workspaceId} />
+          <div className="flex flex-col flex-1 relative overflow-hidden">
+            <DashboardNavbar workspaceId={workspaceId} />
+            <main className="flex-1 overflow-y-auto p-4 md:p-8">
+              {children}
+            </main>
+          </div>
         </div>
-      </div>
+        <GlobalRecordingEffects />
+      </RecordingProvider>
     </HydrationBoundary>
   );
 }

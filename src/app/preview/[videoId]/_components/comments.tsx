@@ -21,35 +21,42 @@ interface CommentsProps {
 export default function Comments({ videoId, user }: CommentsProps) {
   const [comments, setComments] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isPosting, setIsPosting] = useState(false);
 
+  const fetchComments = async () => {
+    setIsLoading(true);
+    const res = await getVideoComments(videoId);
+    if (res.status === 200) {
+      setComments(res.data);
+    }
+    setIsLoading(false);
+  };
+
   useEffect(() => {
-    const fetchComments = async () => {
-      setIsLoading(true);
-      const res = await getVideoComments(videoId);
-      if (res.status === 200) {
-        setComments(res.data);
-      }
-      setIsLoading(false);
-    };
     fetchComments();
   }, [videoId]);
 
-  const handlePostComment = async () => {
-    if (!newComment.trim()) return;
+  const handlePostComment = async (parentId?: string) => {
+    const text = parentId ? replyText : newComment;
+    if (!text.trim()) return;
 
     setIsPosting(true);
     try {
-      const res = await createComment(videoId, newComment, undefined, user?.id);
+      const res = await createComment(videoId, text, parentId, user?.id);
       if (res.status === 200) {
-        toast.success("Comment posted");
-        setNewComment("");
-        // Optimistically add to list or refetch
-        const fetchRes = await getVideoComments(videoId);
-        if (fetchRes.status === 200) setComments(fetchRes.data);
+        toast.success(parentId ? "Reply posted" : "Comment posted");
+        if (parentId) {
+          setReplyText("");
+          setReplyingTo(null);
+        } else {
+          setNewComment("");
+        }
+        await fetchComments();
       } else {
-        toast.error("Failed to post comment");
+        toast.error("Failed to post");
       }
     } catch (e) {
       toast.error("An error occurred");
@@ -58,33 +65,37 @@ export default function Comments({ videoId, user }: CommentsProps) {
     }
   };
 
-  return (
-    <div className="p-4 bg-neutral-800/40 rounded-xl">
-      <h3 className="font-semibold mb-4 text-neutral-200">Comments</h3>
+  // Group comments into threads
+  const threads = comments.filter((c) => !c.commentId);
+  const getReplies = (parentId: string) => comments.filter((c) => c.commentId === parentId);
 
-      {/* Input area */}
-      <div className="flex gap-3 mb-6">
-        <Avatar className="w-8 h-8">
+  return (
+    <div className="p-4 bg-neutral-800/40 rounded-xl border border-white/5">
+      <h3 className="font-semibold mb-6 text-neutral-200 flex items-center gap-2">
+        Comments <span className="text-xs font-normal text-neutral-500 bg-neutral-900 px-2 py-0.5 rounded-full">{comments.length}</span>
+      </h3>
+
+      {/* Main Input area */}
+      <div className="flex gap-3 mb-8">
+        <Avatar className="w-8 h-8 border border-white/10">
           <AvatarImage src={user?.image || ""} />
-          <AvatarFallback>
-            <User size={14} />
-          </AvatarFallback>
+          <AvatarFallback><User size={14} /></AvatarFallback>
         </Avatar>
         <div className="flex-1">
           <Textarea
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="w-full bg-neutral-900 border-neutral-700 min-h-[80px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-indigo-500 rounded-lg p-3"
+            className="w-full bg-neutral-900/50 border-neutral-700 min-h-[80px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-purple-500 rounded-lg p-3"
           />
           <div className="flex justify-end mt-2">
             <Button
-              onClick={handlePostComment}
+              onClick={() => handlePostComment()}
               disabled={isPosting || !newComment.trim()}
               size="sm"
-              className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-4"
+              className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 h-8"
             >
-              {isPosting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}
+              {isPosting && !replyingTo ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Send className="w-3 h-3 mr-2" />}
               Post
             </Button>
           </div>
@@ -93,31 +104,89 @@ export default function Comments({ videoId, user }: CommentsProps) {
 
       {/* Comments List */}
       {isLoading ? (
-        <div className="flex justify-center p-4">
-          <Loader2 className="w-6 h-6 animate-spin text-neutral-500" />
+        <div className="flex justify-center p-8">
+          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
         </div>
-      ) : comments.length === 0 ? (
-        <p className="text-neutral-500 text-sm text-center py-4">No comments yet. Be the first!</p>
+      ) : threads.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-white/5 rounded-xl">
+           <p className="text-neutral-500 text-sm">No discussions yet.</p>
+        </div>
       ) : (
-        <div className="space-y-5">
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-3">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={comment.user?.image || ""} />
-                <AvatarFallback>
-                  <User size={14} />
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-sm text-neutral-200 capitalize">
-                    {comment.user?.firstName || "Unknown"} {comment.user?.lastName || "User"}
-                  </span>
-                  <span className="text-xs text-neutral-500">
-                    {new Date(comment.createdAt).toLocaleDateString()}
-                  </span>
+        <div className="space-y-8">
+          {threads.map((comment) => (
+            <div key={comment.id} className="group/comment flex flex-col gap-4">
+              <div className="flex gap-3">
+                <Avatar className="w-8 h-8 border border-white/5">
+                  <AvatarImage src={comment.user?.image || ""} />
+                  <AvatarFallback><User size={14} /></AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-sm text-neutral-200">
+                      {comment.user?.firstName} {comment.user?.lastName}
+                    </span>
+                    <span className="text-[10px] text-neutral-500 bg-neutral-900 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                      {new Date(comment.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <p className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">{comment.comment}</p>
+                  
+                  <button 
+                    onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
+                    className="text-[11px] font-medium text-neutral-500 hover:text-purple-400 mt-2 transition-colors uppercase tracking-widest"
+                  >
+                    Reply
+                  </button>
+
+                  {/* Reply Input */}
+                  {replyingTo === comment.id && (
+                    <div className="mt-4 flex gap-3 animate-in slide-in-from-top-1 duration-200">
+                      <div className="flex-1">
+                        <Textarea
+                          value={replyText}
+                          autoFocus
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Write a reply..."
+                          className="w-full bg-neutral-900 border-neutral-700 min-h-[60px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-purple-500 rounded-lg p-3"
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                           <Button variant="ghost" size="xs" onClick={() => setReplyingTo(null)} className="h-7 text-[10px]">Cancel</Button>
+                           <Button
+                             onClick={() => handlePostComment(comment.id)}
+                             disabled={isPosting || !replyText.trim()}
+                             size="sm"
+                             className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 h-7 text-xs"
+                           >
+                             Post Reply
+                           </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm text-neutral-400 whitespace-pre-wrap">{comment.comment}</p>
+              </div>
+
+              {/* Nested Replies */}
+              <div className="ml-11 space-y-4 border-l border-white/5 pl-4">
+                {getReplies(comment.id).map((reply) => (
+                  <div key={reply.id} className="flex gap-3">
+                    <Avatar className="w-6 h-6 border border-white/5">
+                      <AvatarImage src={reply.user?.image || ""} />
+                      <AvatarFallback><User size={12} /></AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-medium text-xs text-neutral-300">
+                          {reply.user?.firstName} {reply.user?.lastName}
+                        </span>
+                        <span className="text-[9px] text-neutral-600">
+                          {new Date(reply.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <p className="text-xs text-neutral-400 leading-relaxed">{reply.comment}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

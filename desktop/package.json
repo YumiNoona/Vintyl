@@ -1,7 +1,7 @@
 {
-  "name": "venus-desktop",
+  "name": "vintyl-desktop",
   "version": "1.0.0",
-  "description": "Venus Desktop - Screen Recorder",
+  "description": "Vintyl Desktop - Screen Recorder",
   "main": "src/main.js",
   "scripts": {
     "dev": "electron .",
@@ -9,8 +9,8 @@
     "build": "electron-builder"
   },
   "build": {
-    "appId": "com.venus.desktop",
-    "productName": "Venus Desktop",
+    "appId": "com.vintyl.desktop",
+    "productName": "Vintyl Desktop",
     "directories": {
       "output": "dist"
     },

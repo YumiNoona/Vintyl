@@ -32,7 +32,7 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 
 // Health check
 app.get("/", (req, res) => {
-  res.json({ status: "ok", server: "Venus Express Server" });
+  res.json({ status: "ok", server: "Vintyl Express Server" });
 });
 
 // ============ Socket.IO Events ============
@@ -152,7 +152,7 @@ app.get("/api/video/:videoId", async (req, res) => {
 const PORT = process.env.EXPRESS_PORT || 5050;
 
 server.listen(PORT, () => {
-  console.log(`\n🚀 Venus Express Server running on port ${PORT}`);
+  console.log(`\n🚀 Vintyl Express Server running on port ${PORT}`);
   console.log(`   Health: http://localhost:${PORT}`);
   console.log(`   Socket.IO: ws://localhost:${PORT}`);
   console.log("");

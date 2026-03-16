@@ -135,30 +135,31 @@ export const createWorkspace = async (name: string) => {
       select: { subscription: { select: { plan: true } } },
     });
 
-    if (authorized?.subscription?.plan === "PRO") {
-      const workspace = await client.user.update({
-        where: { clerkId: user.id },
-        data: {
-          workspace: {
-            create: {
-              name,
-              type: "PUBLIC",
-            },
+    const isPro = authorized?.subscription?.plan === "PRO";
+    const workspaceType = isPro ? "PUBLIC" : "PERSONAL";
+
+    const workspace = await client.user.update({
+      where: { clerkId: user.id },
+      data: {
+        workspace: {
+          create: {
+            name,
+            type: workspaceType,
           },
         },
-      });
+      },
+    });
 
-      if (workspace) {
-        return { status: 201, data: "Workspace created" };
-      }
+    if (workspace) {
+      return { 
+        status: 201, 
+        data: `Workspace created as ${workspaceType.toLowerCase()}` 
+      };
     }
 
-    return {
-      status: 401,
-      data: "You are not authorized to create a workspace",
-    };
+    return { status: 400, data: "Failed to create workspace" };
   } catch (error) {
-    return { status: 400 };
+    return { status: 400, data: "Internal error" };
   }
 };
 
@@ -320,6 +321,141 @@ export const acceptInvite = async (inviteId: string) => {
     ]);
 
     return { status: 200, data: "Invite accepted" };
+  } catch (error) {
+    return { status: 500, data: "Internal error" };
+  }
+};
+
+export const getWorkspaceMembers = async (workspaceId: string) => {
+  try {
+    const user = await currentUser();
+    if (!user) return { status: 403 };
+
+    const members = await client.workspace.findUnique({
+      where: {
+        id: workspaceId,
+      },
+      select: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            image: true,
+          },
+        },
+        members: {
+          select: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!members) return { status: 404 };
+
+    return {
+      status: 200,
+      data: members,
+    };
+  } catch (error) {
+    return { status: 400 };
+  }
+};
+
+export const deleteFolder = async (folderId: string) => {
+  try {
+    const user = await currentUser();
+    if (!user) return { status: 403 };
+
+    const folder = await client.folder.delete({
+      where: {
+        id: folderId,
+      },
+    });
+
+    if (folder) {
+      return { status: 200, data: "Folder deleted" };
+    }
+
+    return { status: 400, data: "Folder not found" };
+  } catch (error) {
+    return { status: 500, data: "Internal error" };
+  }
+};
+
+export const renameWorkspace = async (workspaceId: string, name: string) => {
+  try {
+    const user = await currentUser();
+    if (!user) return { status: 403 };
+
+    const workspace = await client.workspace.update({
+      where: {
+        id: workspaceId,
+        user: { clerkId: user.id },
+      },
+      data: { name },
+    });
+
+    if (workspace) {
+      return { status: 200, data: "Workspace renamed" };
+    }
+
+    return { status: 400, data: "Workspace not found" };
+  } catch (error) {
+    return { status: 500, data: "Internal error" };
+  }
+};
+
+export const deleteWorkspace = async (workspaceId: string) => {
+  try {
+    const user = await currentUser();
+    if (!user) return { status: 403 };
+
+    const workspace = await client.workspace.delete({
+      where: {
+        id: workspaceId,
+        user: { clerkId: user.id },
+      },
+    });
+
+    if (workspace) {
+      return { status: 200, data: "Workspace deleted" };
+    }
+
+    return { status: 400, data: "Workspace not found" };
+  } catch (error) {
+    return { status: 500, data: "Internal error" };
+  }
+};
+
+export const updateFolderLocation = async (
+  folderId: string,
+  workspaceId: string,
+  parentFolderId?: string | null
+) => {
+  try {
+    const folder = await client.folder.update({
+      where: { id: folderId },
+      data: {
+        workspaceId,
+        // Assuming schema has parentFolderId for nesting, if not we ignore it
+        ...(parentFolderId !== undefined && { parentFolderId }),
+      },
+    });
+
+    if (folder) return { status: 200, data: "Folder moved successfully" };
+
+    return { status: 404, data: "Folder not found" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }

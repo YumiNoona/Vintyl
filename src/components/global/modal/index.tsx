@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import {
   Dialog,
@@ -9,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 
 type ModalProps = {
-  trigger: React.ReactNode;
-  children: React.ReactNode;
+  trigger: React.ReactElement;
+  children: React.ReactNode | (({ setOpen }: { setOpen: (open: boolean) => void }) => React.ReactNode);
   title: string;
   description: string;
   className?: string;
@@ -23,17 +25,19 @@ export default function Modal({
   description,
   className,
 }: ModalProps) {
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <Dialog>
-      <DialogTrigger className={className}>
-        {trigger}
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger render={trigger} />
+      <DialogContent className="max-w-xl bg-[#111111] border-white/5 backdrop-blur-3xl shadow-2xl">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogTitle className="text-2xl font-bold text-white">{title}</DialogTitle>
+          <DialogDescription className="text-neutral-400">{description}</DialogDescription>
         </DialogHeader>
-        {children}
+        {typeof children === 'function' 
+          ? (children as any)({ setOpen }) 
+          : children}
       </DialogContent>
     </Dialog>
   );
