@@ -1,0 +1,60 @@
+import { client } from "@/lib/prisma"
+import { NextRequest, NextResponse } from "next/server"
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await req.json()
+    const { filename } = body // The key/filename used in S3
+    const userId = params.id // This is the Clerk ID sent from Express
+
+    // Resolve Clerk ID to internal Prisma User ID
+    const user = await client.user.findUnique({
+      where: { clerkId: userId },
+      select: { 
+        id: true,
+        workspace: {
+          where: { type: "PERSONAL" },
+          select: { id: true }
+        },
+        subscription: {
+          select: { plan: true }
+        }
+      }
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    const personalWorkspaceId = user.workspace[0]?.id
+
+    if (!personalWorkspaceId) {
+      return NextResponse.json({ error: "Personal workspace not found" }, { status: 404 })
+    }
+
+    // Create a placeholder video record
+    const video = await client.video.create({
+      data: {
+        source: filename,
+        userId: user.id,
+        workspaceId: personalWorkspaceId,
+        processing: true,
+      }
+    })
+
+    if (video) {
+      return NextResponse.json({ 
+        status: 200, 
+        plan: user.subscription?.plan || "FREE" 
+      })
+    }
+
+    return NextResponse.json({ error: "Failed to create video" }, { status: 400 })
+  } catch (error) {
+    console.error("Error in processing video:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

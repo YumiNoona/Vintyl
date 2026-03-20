@@ -3,157 +3,141 @@ const express = require("express");
 const http = require("http");
 const cors = require("cors");
 const { Server } = require("socket.io");
+const fs = require("fs");
+const path = require("path");
+const axios = require("axios");
+const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { OpenAI } = require("openai");
+const { Readable } = require("stream");
 
 const app = express();
 const server = http.createServer(app);
 
-// CORS config — allow Next.js and Electron app
+// Initialize S3 & OpenAI
+const s3 = new S3Client({
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+  region: process.env.AWS_REGION,
+});
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
 const io = new Server(server, {
   cors: {
     origin: [
       process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3000",
-      "http://localhost:5173", // Electron dev
+      "http://localhost:5173",
     ],
     methods: ["GET", "POST"],
   },
 });
 
-app.use(
-  cors({
-    origin: [
-      process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-  })
-);
+app.use(cors());
+app.use(express.json());
 
-app.use(express.json({ limit: "50mb" }));
-app.use(express.urlencoded({ extended: true, limit: "50mb" }));
-
-// Health check
-app.get("/", (req, res) => {
-  res.json({ status: "ok", server: "Vintyl Express Server" });
-});
-
-// ============ Socket.IO Events ============
+const recordedChunks = {}; // In-memory storage for chunks per filename
 
 io.on("connection", (socket) => {
-  console.log("🔌 Client connected:", socket.id);
+  console.log("🔌 Connected:", socket.id);
 
-  // ---- Studio events (from Electron desktop app) ----
-
-  // User starts recording
-  socket.on("start-recording", (data) => {
-    console.log("🎬 Recording started:", data.clerkId);
-    // Broadcast to web app that recording is in progress
-    socket.broadcast.emit("recording-started", {
-      clerkId: data.clerkId,
-    });
+  socket.on("video-chunks", (data) => {
+    const { chunks, filename } = data;
+    if (!recordedChunks[filename]) recordedChunks[filename] = [];
+    recordedChunks[filename].push(Buffer.from(chunks));
+    console.log(`📦 Chunk added to ${filename}`);
   });
 
-  // Receive video chunks from desktop app
-  socket.on("video-chunks", async (data) => {
-    const { chunks, clerkId, filename } = data;
-    console.log(`📦 Received chunk for: ${filename}`);
-
-    // In production: stream chunks to S3 or temp storage
-    // For now, broadcast to web app
-    socket.broadcast.emit("video-chunk-received", {
-      clerkId,
-      filename,
-      chunkSize: chunks?.length || 0,
-    });
-  });
-
-  // Recording completed — process the video
-  socket.on("stop-recording", async (data) => {
-    const { clerkId, filename } = data;
-    console.log("⏹️ Recording stopped:", filename);
-
-    socket.broadcast.emit("recording-stopped", {
-      clerkId,
-      filename,
-    });
-  });
-
-  // ---- Processing events ----
-
-  // Request to process a video (transcription, AI summary)
   socket.on("process-video", async (data) => {
-    const { videoId, clerkId } = data;
-    console.log("🔄 Processing video:", videoId);
+    const { filename, clerkId } = data;
+    console.log(`🔄 Processing ${filename} for user ${clerkId}`);
 
-    // Emit processing status updates
-    socket.emit("processing-status", {
-      videoId,
-      status: "processing",
-      step: "Generating transcription...",
-    });
+    try {
+      const chunks = recordedChunks[filename];
+      if (!chunks) {
+        return socket.emit("error", { message: "No chunks found for this file" });
+      }
 
-    // In production: call Whisper API, then OpenAI for summary
-    // For now, simulate processing
-    setTimeout(() => {
-      socket.emit("processing-status", {
-        videoId,
-        status: "completed",
-        step: "Processing complete",
+      const buffer = Buffer.concat(chunks);
+      const filePath = path.join(__dirname, "temp_upload", filename);
+      fs.writeFileSync(filePath, buffer);
+
+      // 1. Initial Processing Call to Next.js
+      const processingRes = await axios.post(
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/processing`,
+        { filename }
+      );
+
+      if (processingRes.status !== 200) {
+        throw new Error("Failed to signal processing to Next.js");
+      }
+
+      // 2. Upload to S3
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: filename,
+        Body: fs.createReadStream(filePath),
+        ContentType: "video/webm",
+      };
+
+      await s3.send(new PutObjectCommand(uploadParams));
+      console.log("✅ Uploaded to S3");
+
+      // 3. Transcription (Whisper)
+      const transcription = await openai.audio.transcriptions.create({
+        file: fs.createReadStream(filePath),
+        model: "whisper-1",
       });
-    }, 3000);
+      console.log("📝 Transcribed");
+
+      // 4. Summarization (GPT)
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "system",
+            content: "Generate a title and a concise summary for this video transcript. Return in JSON format: { \"title\": \"...\", \"summary\": \"...\" }",
+          },
+          { role: "user", content: transcription.text },
+        ],
+        response_format: { type: "json_object" },
+      });
+      console.log("💡 Summarized");
+
+      // 5. Update Next.js with Transcription/Summary
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/transcribe`,
+        {
+          filename,
+          content: completion.choices[0].message.content,
+          transcript: transcription.text,
+        }
+      );
+
+      // 6. Complete Processing Call
+      await axios.post(
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/complete`,
+        { filename }
+      );
+
+      // Cleanup
+      delete recordedChunks[filename];
+      fs.unlinkSync(filePath);
+      console.log("✨ Done!");
+
+      socket.emit("processing-complete", { filename });
+
+    } catch (error) {
+      console.error("❌ Processing error:", error);
+      socket.emit("error", { message: error.message });
+    }
   });
 
-  // ---- Workspace events ----
-
-  // Join workspace room for real-time updates
-  socket.on("join-workspace", (workspaceId) => {
-    socket.join(workspaceId);
-    console.log(`👤 Socket ${socket.id} joined workspace: ${workspaceId}`);
-  });
-
-  // Leave workspace room
-  socket.on("leave-workspace", (workspaceId) => {
-    socket.leave(workspaceId);
-    console.log(`👤 Socket ${socket.id} left workspace: ${workspaceId}`);
-  });
-
-  // New video uploaded — notify workspace
-  socket.on("new-video", (data) => {
-    const { workspaceId, video } = data;
-    io.to(workspaceId).emit("video-added", video);
-  });
-
-  // Comment added — notify workspace
-  socket.on("new-comment", (data) => {
-    const { workspaceId, comment } = data;
-    io.to(workspaceId).emit("comment-added", comment);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("🔌 Client disconnected:", socket.id);
-  });
+  socket.on("disconnect", () => delete recordedChunks[socket.id]);
 });
-
-// ============ REST API Routes ============
-
-// Video streaming endpoint
-app.get("/api/video/:videoId", async (req, res) => {
-  const { videoId } = req.params;
-
-  // In production: stream video from S3/CloudFront
-  // For now, return a placeholder response
-  res.json({
-    message: "Video streaming endpoint",
-    videoId,
-    note: "Connect S3/CloudFront for actual streaming",
-  });
-});
-
-// ============ Start Server ============
 
 const PORT = process.env.EXPRESS_PORT || 5050;
-
-server.listen(PORT, () => {
-  console.log(`\n🚀 Vintyl Express Server running on port ${PORT}`);
-  console.log(`   Health: http://localhost:${PORT}`);
-  console.log(`   Socket.IO: ws://localhost:${PORT}`);
-  console.log("");
-});
+server.listen(PORT, () => console.log(`🚀 Express processing server on ${PORT}`));

@@ -21,11 +21,11 @@ const closeBtn = document.getElementById("close-btn");
 
 // ===== State =====
 let mediaRecorder = null;
-let recordedChunks = [];
 let stream = null;
 let timerInterval = null;
 let seconds = 0;
 let socket = null;
+let currentFilename = "";
 
 // ===== Socket.IO Connection =====
 function connectSocket() {
@@ -123,7 +123,7 @@ sourceSelect.addEventListener("change", async () => {
 async function startRecording() {
   if (!stream) return;
 
-  recordedChunks = [];
+  currentFilename = `recording-${Date.now()}.webm`;
 
   // Add audio from system if available
   try {
@@ -142,79 +142,39 @@ async function startRecording() {
   });
 
   mediaRecorder.ondataavailable = (event) => {
-    if (event.data.size > 0) {
-      recordedChunks.push(event.data);
-
-      // Send chunk to server
-      if (socket?.connected) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          socket.emit("video-chunks", {
-            chunks: reader.result,
-            filename: `recording-${Date.now()}.webm`,
-            clerkId: "desktop-user", // Will be replaced with actual auth
-          });
-        };
-        reader.readAsArrayBuffer(event.data);
-      }
+    if (event.data.size > 0 && socket?.connected) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        socket.emit("video-chunks", {
+          chunks: reader.result,
+          filename: currentFilename,
+          clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh", // Hardcoded for now
+        });
+      };
+      reader.readAsArrayBuffer(event.data);
     }
   };
 
   mediaRecorder.onstop = async () => {
-    statusText.textContent = "Saving recording...";
+    statusText.textContent = "Processing video...";
     startBtn.disabled = true;
 
-    // Create downloadable blob
-    const blob = new Blob(recordedChunks, { type: "video/webm" });
-    const filename = `vintyl-recording-${Date.now()}.webm`;
-
-    try {
-      // 1. Get Presigned URL
-      const res = await fetch("http://localhost:3000/api/upload", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName: filename,
-          contentType: "video/webm",
-          // Use hardcoded IDs since there is no desktop auth
-          workspaceId: "72241b5a-ddc3-4af8-ba8f-98c684c49be1",
-          clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh"
-        }),
+    if (socket?.connected) {
+      socket.emit("process-video", {
+        filename: currentFilename,
+        clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh",
       });
-
-      const { uploadUrl, videoId } = await res.json();
-
-      if (!uploadUrl) throw new Error("Could not get upload URL");
-
-      statusText.textContent = "Uploading to cloud...";
-
-      // 2. Upload direct to S3
-      await fetch(uploadUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "video/webm" },
-        body: blob,
-      });
-
-      statusText.textContent = "Starting AI Processing...";
-
-      // 3. Trigger AI Processing
-      await fetch("http://localhost:3000/api/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          videoId,
-          action: "process"
-        })
-      });
-
-      statusText.textContent = "Recording saved and processing started!";
-    } catch (err) {
-      console.error("Upload error:", err);
-      statusText.textContent = "Error saving recording.";
     }
 
-    // Reset UI
-    setTimeout(resetUI, 3000);
+    socket.on("processing-complete", () => {
+      statusText.textContent = "Done! Video saved.";
+      setTimeout(resetUI, 3000);
+    });
+
+    socket.on("error", (err) => {
+      statusText.textContent = `Error: ${err.message}`;
+      setTimeout(resetUI, 5000);
+    });
   };
 
   // Start recording (chunk every 1 second)

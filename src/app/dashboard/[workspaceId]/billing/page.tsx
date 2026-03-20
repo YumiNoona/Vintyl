@@ -1,12 +1,69 @@
 "use client";
 
 import React from "react";
-import { CreditCard, Zap, Loader2 } from "lucide-react";
+import { CreditCard, Zap, Loader2, Check, Star, Shield, Users, Mail, Globe, Brain, Search, Monitor, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createCheckoutSession } from "@/actions/payment";
 import { useQueryData } from "@/hooks/useQueryData";
 import { getSubscription } from "@/actions/payment";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+const plans = [
+  {
+    name: "Starter",
+    price: "$0",
+    description: "Perfect for individuals just getting started.",
+    features: ["1 Workspace", "Up to 25 videos", "Standard quality", "Community support"],
+    buttonText: "Current Plan",
+    variant: "standard",
+  },
+  {
+    name: "Pro",
+    price: "$29",
+    description: "For power users and solo professionals.",
+    features: ["Unlimited videos", "AI summaries", "Transcript search", "4K quality support"],
+    buttonText: "Upgrade to Pro",
+    variant: "premium",
+    popular: true,
+  },
+  {
+    name: "Team",
+    price: "$99",
+    description: "Collaborate across your whole department.",
+    features: ["Up to 10 members", "Shared library", "Branded player", "Priority support"],
+    buttonText: "Get Started",
+    variant: "standard",
+  },
+  {
+    name: "Enterprise",
+    price: "Custom",
+    description: "Advanced security and support for large orgs.",
+    features: ["Unlimited members", "SSO & SAML", "Dedicated manager", "Custom contracts"],
+    buttonText: "Contact Sales",
+    variant: "standard",
+  },
+];
+
+const comparisonData = [
+  { category: "Recording", features: [
+    { name: "Video Limit", starter: "25 videos", pro: "Unlimited", team: "Unlimited", enterprise: "Unlimited" },
+    { name: "Resolution", starter: "720p", pro: "4K UHD", team: "4K UHD", enterprise: "4K UHD" },
+    { name: "Browser Recording", starter: true, pro: true, team: true, enterprise: true },
+    { name: "Desktop App", starter: false, pro: true, team: true, enterprise: true },
+  ]},
+  { category: "AI & Tools", features: [
+    { name: "AI Summaries", starter: false, pro: true, team: true, enterprise: true },
+    { name: "Transcription", starter: false, pro: true, team: true, enterprise: true },
+    { name: "Custom Branding", starter: false, pro: false, team: true, enterprise: true },
+  ]},
+  { category: "Admin & Security", features: [
+    { name: "Members", starter: "1", pro: "1", team: "Up to 10", enterprise: "Unlimited" },
+    { name: "SSO/SAML", starter: false, pro: false, team: false, enterprise: true },
+    { name: "Support", starter: "Community", pro: "Priority", team: "24/7 Priority", enterprise: "Dedicated Manager" },
+  ]}
+];
 
 export default function BillingPage() {
   const { data: subData, isFetched } = useQueryData(
@@ -15,7 +72,7 @@ export default function BillingPage() {
   );
   const [loading, setLoading] = React.useState(false);
 
-  const plan = (subData as any)?.data?.plan || "FREE";
+  const currentPlan = (subData as any)?.data?.plan || "FREE";
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -34,115 +91,176 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8 lg:p-12">
-      <div className="mb-16 text-center max-w-3xl mx-auto">
-        <h1 className="text-5xl font-black text-foreground mb-6 tracking-tighter uppercase italic">
-          Choose Your Plan
-        </h1>
-        <p className="text-muted-foreground text-lg font-medium leading-relaxed">
-          Scale your communication with AI-powered video messages. Seamless collaboration with no hidden fees.
-        </p>
+    <div className="min-h-screen bg-background">
+      {/* Hero Section */}
+      <div className="pt-20 pb-16 px-4 sm:px-8 lg:px-12 text-center max-w-4xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-6 border border-purple-500/20">
+            <Star size={12} fill="currentColor" />
+            Pricing Plans
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black text-foreground mb-6 tracking-tight leading-none uppercase">
+            Simple, <span className="text-purple-600">Transparent</span> Pricing.
+          </h1>
+          <p className="text-muted-foreground text-xl font-medium leading-relaxed max-w-2xl mx-auto">
+            Everything you need to record, share, and collaborate on videos with the power of artificial intelligence.
+          </p>
+        </motion.div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-[1500px] mx-auto items-stretch pb-32">
-        {/* Starter Plan */}
-        <div className="p-10 rounded-[3rem] border-2 border-border bg-card/30 backdrop-blur-sm flex flex-col h-full hover:border-foreground/20 transition-all duration-500 group">
-          <div className="mb-10">
-            <h3 className="text-2xl font-black text-foreground mb-3 uppercase tracking-tighter">Starter</h3>
-            <p className="text-muted-foreground text-sm font-medium leading-relaxed">Perfect for individuals just getting started.</p>
-          </div>
-          <div className="mb-10 flex items-baseline gap-1">
-            <span className="text-5xl font-black text-foreground tracking-tighter">$0</span>
-            <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">/mo</span>
-          </div>
-          <ul className="space-y-5 mb-12 flex-1">
-            {["1 Workspace", "Up to 25 videos", "Standard quality", "Community support"].map((feature) => (
-              <li key={feature} className="flex items-center gap-4 text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                <div className="w-2 h-2 rounded-full bg-border group-hover:bg-foreground transition-colors" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <Button variant="outline" className="w-full h-14 rounded-2xl border-2 border-border bg-transparent hover:bg-secondary text-foreground font-black uppercase tracking-widest text-xs transition-all active:scale-95">
-            Current Plan
-          </Button>
-        </div>
-
-        {/* Pro Plan */}
-        <div className="p-10 rounded-[3rem] border-4 border-purple-600 dark:border-purple-500 bg-gradient-to-b from-purple-500/10 to-transparent shadow-[0_20px_80px_rgba(168,85,247,0.15)] scale-105 flex flex-col h-full relative z-10 hover:shadow-[0_20px_100px_rgba(168,85,247,0.25)] transition-all duration-500">
-          <div className="absolute -top-5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-[10px] font-black px-6 py-2 rounded-full shadow-2xl uppercase tracking-[0.2em] whitespace-nowrap ring-4 ring-background">
-            Most Popular
-          </div>
-          <div className="mb-10">
-            <h3 className="text-2xl font-black text-foreground mb-3 uppercase tracking-tighter">Pro</h3>
-            <p className="text-foreground/80 dark:text-purple-100 text-sm font-bold leading-relaxed">For power users and solo professionals.</p>
-          </div>
-          <div className="mb-10 flex items-baseline gap-1">
-            <span className="text-5xl font-black text-foreground tracking-tighter text-purple-600 dark:text-purple-400">$29</span>
-            <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">/mo</span>
-          </div>
-          <ul className="space-y-5 mb-12 flex-1">
-            {["Unlimited videos", "AI summaries", "Transcript search", "4K quality support"].map((feature) => (
-              <li key={feature} className="flex items-center gap-4 text-sm font-black text-foreground">
-                <div className="bg-purple-600/20 p-1 rounded-lg">
-                  <Zap className="text-purple-600 dark:text-purple-400 size-4 shrink-0 fill-current" />
+      {/* Pricing Cards */}
+      <div className="px-4 sm:px-8 lg:px-12 pb-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-[1400px] mx-auto items-stretch">
+          {plans.map((plan, index) => (
+            <motion.div
+              key={plan.name}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: index * 0.1 }}
+              className={cn(
+                "group relative flex flex-col p-8 rounded-[2.5rem] border transition-all duration-300",
+                plan.variant === "premium" 
+                  ? "bg-foreground text-background border-foreground shadow-2xl scale-105 z-10" 
+                  : "bg-card border-border hover:border-foreground/20 shadow-sm"
+              )}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                  Most Popular
                 </div>
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <Button 
-            onClick={handleUpgrade}
-            disabled={loading}
-            className="w-full h-14 rounded-2xl bg-foreground text-background hover:bg-foreground/90 font-black uppercase tracking-widest text-xs shadow-2xl transition-all active:scale-95"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : "Upgrade to Pro"}
-          </Button>
-        </div>
+              )}
 
-        {/* Team Plan */}
-        <div className="p-10 rounded-[3rem] border-2 border-border bg-card/30 backdrop-blur-sm flex flex-col h-full hover:border-foreground/20 transition-all duration-500 group">
-          <div className="mb-10">
-            <h3 className="text-2xl font-black text-foreground mb-3 uppercase tracking-tighter">Team</h3>
-            <p className="text-muted-foreground text-sm font-medium leading-relaxed">Collaborate across your whole department.</p>
-          </div>
-          <div className="mb-10 flex items-baseline gap-1">
-            <span className="text-5xl font-black text-foreground tracking-tighter">$99</span>
-            <span className="text-muted-foreground text-sm font-bold uppercase tracking-widest">/mo</span>
-          </div>
-          <ul className="space-y-5 mb-12 flex-1">
-            {["Up to 10 members", "Shared library", "Branded player", "Priority support"].map((feature) => (
-              <li key={feature} className="flex items-center gap-4 text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                <div className="w-2 h-2 rounded-full bg-border group-hover:bg-foreground transition-colors" />
-                {feature}
-              </li>
-            ))}
-          </ul>
-          <Button variant="outline" className="w-full h-14 rounded-2xl border-2 border-border bg-transparent hover:bg-secondary text-foreground font-black uppercase tracking-widest text-xs transition-all active:scale-95">
-            Get Started
-          </Button>
-        </div>
+              <div className="mb-8">
+                <h3 className={cn(
+                  "text-xl font-black uppercase tracking-tight mb-2",
+                  plan.variant === "premium" ? "text-background" : "text-foreground"
+                )}>
+                  {plan.name}
+                </h3>
+                <p className={cn(
+                  "text-sm font-medium opacity-70",
+                  plan.variant === "premium" ? "text-background" : "text-muted-foreground"
+                )}>
+                  {plan.description}
+                </p>
+              </div>
 
-        {/* Enterprise Plan */}
-        <div className="p-10 rounded-[3rem] border-2 border-border bg-card/30 backdrop-blur-sm flex flex-col h-full hover:border-foreground/20 transition-all duration-500 group">
-          <div className="mb-10">
-            <h3 className="text-2xl font-black text-foreground mb-3 uppercase tracking-tighter">Enterprise</h3>
-            <p className="text-muted-foreground text-sm font-medium leading-relaxed">Advanced security and support for large orgs.</p>
+              <div className="mb-8 flex items-baseline gap-1">
+                <span className="text-5xl font-black tracking-tighter">{plan.price}</span>
+                {plan.price !== "Custom" && (
+                  <span className="text-sm font-bold opacity-60 uppercase tracking-widest">/mo</span>
+                )}
+              </div>
+
+              <div className="flex-1 space-y-4 mb-10">
+                {plan.features.map((feature) => (
+                  <div key={feature} className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex-shrink-0 size-5 rounded-full flex items-center justify-center",
+                      plan.variant === "premium" ? "bg-background/20" : "bg-purple-600/10"
+                    )}>
+                      <Check size={12} className={plan.variant === "premium" ? "text-background" : "text-purple-600"} strokeWidth={3} />
+                    </div>
+                    <span className={cn(
+                      "text-sm font-bold",
+                      plan.variant === "premium" ? "text-background/90" : "text-foreground/80"
+                    )}>
+                      {feature}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <Button
+                onClick={plan.name === "Pro" ? handleUpgrade : undefined}
+                disabled={loading}
+                className={cn(
+                  "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg",
+                  plan.variant === "premium" 
+                    ? "bg-background text-foreground hover:bg-background/90" 
+                    : "bg-foreground text-background hover:bg-foreground/90"
+                )}
+              >
+                {loading && plan.name === "Pro" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  plan.name === "Starter" ? "Current Plan" : plan.buttonText
+                )}
+              </Button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+
+      {/* Comparison Grid Section */}
+      <div className="px-4 sm:px-8 lg:px-12 pb-40">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-black uppercase tracking-tighter mb-4">Compare Features</h2>
+            <p className="text-muted-foreground font-medium">Find the perfect fit for your workflow.</p>
           </div>
-          <div className="mb-10">
-            <span className="text-4xl font-black text-foreground uppercase tracking-tighter">Custom</span>
-          </div>
-          <ul className="space-y-5 mb-12 flex-1">
-            {["Unlimited members", "SSO & SAML", "Dedicated manager", "Custom contracts"].map((feature) => (
-              <li key={feature} className="flex items-center gap-4 text-sm font-semibold text-muted-foreground group-hover:text-foreground transition-colors">
-                <div className="w-2 h-2 rounded-full bg-border group-hover:bg-foreground transition-colors" />
-                {feature}
-              </li>
+
+          <div className="rounded-[2rem] border border-border bg-card/50 backdrop-blur-xl overflow-hidden shadow-2xl">
+            <div className="grid grid-cols-5 p-6 border-b border-border bg-muted/30">
+              <div className="col-span-1 font-bold text-xs uppercase text-muted-foreground tracking-widest">Features</div>
+              <div className="text-center font-black text-sm uppercase">Starter</div>
+              <div className="text-center font-black text-sm uppercase text-purple-600">Pro</div>
+              <div className="text-center font-black text-sm uppercase">Team</div>
+              <div className="text-center font-black text-sm uppercase">Enterprise</div>
+            </div>
+
+            {comparisonData.map((category) => (
+              <div key={category.category}>
+                <div className="px-6 py-4 bg-secondary/20 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50">
+                  {category.category}
+                </div>
+                {category.features.map((feature, idx) => (
+                  <div 
+                    key={feature.name} 
+                    className={cn(
+                      "grid grid-cols-5 px-6 py-5 items-center transition-colors hover:bg-secondary/10",
+                      idx !== category.features.length - 1 && "border-b border-border/30"
+                    )}
+                  >
+                    <div className="col-span-1 text-sm font-bold text-foreground/80">{feature.name}</div>
+                    <div className="text-center text-sm font-medium">
+                      {typeof feature.starter === "boolean" ? (feature.starter ? <Check size={16} className="mx-auto text-green-500" /> : "-") : feature.starter}
+                    </div>
+                    <div className="text-center text-sm font-bold text-purple-600">
+                      {typeof feature.pro === "boolean" ? (feature.pro ? <Check size={16} className="mx-auto" /> : "-") : feature.pro}
+                    </div>
+                    <div className="text-center text-sm font-medium">
+                      {typeof feature.team === "boolean" ? (feature.team ? <Check size={16} className="mx-auto text-foreground" /> : "-") : feature.team}
+                    </div>
+                    <div className="text-center text-sm font-medium">
+                      {typeof feature.enterprise === "boolean" ? (feature.enterprise ? <Check size={16} className="mx-auto text-foreground" /> : "-") : feature.enterprise}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ))}
-          </ul>
-          <Button variant="outline" className="w-full h-14 rounded-2xl border-2 border-border bg-transparent hover:bg-secondary text-foreground font-black uppercase tracking-widest text-xs transition-all active:scale-95">
-            Contact Sales
-          </Button>
+          </div>
+
+          {/* Customer Support Banner */}
+          <div className="mt-12 p-8 rounded-[2rem] bg-gradient-to-br from-purple-600/10 to-indigo-600/10 border border-purple-500/10 flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex items-center gap-6">
+              <div className="size-16 rounded-2xl bg-foreground text-background flex items-center justify-center shadow-xl">
+                <Mail size={32} />
+              </div>
+              <div>
+                <h4 className="text-xl font-black uppercase tracking-tight">Need a custom plan?</h4>
+                <p className="text-muted-foreground font-medium">Our team is happy to help you build a package that fits your organization perfectly.</p>
+              </div>
+            </div>
+            <Button variant="outline" className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-foreground/10 hover:border-foreground/20 hover:bg-background">
+              Talk to an Expert
+              <ArrowRight size={16} className="ml-2" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
