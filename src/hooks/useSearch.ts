@@ -9,7 +9,7 @@ export const useSearch = (key: string, type: "USERS") => {
   const [onUsers, setOnUsers] = useState<
     | {
         id: string;
-        subscription: { plan: "FREE" | "PRO" } | null;
+        subscription: { plan: "FREE" | "PRO" | "TEAM" | "STANDARD" | "ENTERPRISE" } | null;
         firstName: string | null;
         lastName: string | null;
         image: string | null;

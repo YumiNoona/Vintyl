@@ -25,7 +25,7 @@ type VideoPreviewContentProps = {
       image: string | null;
       clerkId: string;
       trial: { trial: boolean } | null;
-      subscription: { plan: "FREE" | "PRO" | "TEAM" } | null;
+      subscription: { plan: "FREE" | "PRO" | "TEAM" | "STANDARD" | "ENTERPRISE" } | null;
     } | null;
   };
   currentUser?: {

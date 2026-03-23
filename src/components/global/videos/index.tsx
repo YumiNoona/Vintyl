@@ -65,6 +65,7 @@ export default function VideoList({
               workspaceId={workspaceId}
               user={video.User}
               folder={video.Folder}
+              description={video.description}
             />
           ))}
         </div>

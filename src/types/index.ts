@@ -1,7 +1,9 @@
+import { Plan } from "@/generated/prisma";
+
 export type WorkspaceProps = {
   data: {
     subscription: {
-      plan: "FREE" | "PRO";
+      plan: Plan;
     } | null;
     workspace: {
       id: string;
@@ -49,6 +51,7 @@ export type VideosProps = {
   data: {
     id: string;
     title: string | null;
+    description: string | null;
     createdAt: Date;
     source: string;
     processing: boolean;
@@ -84,7 +87,7 @@ export type VideoProps = {
         trial: boolean;
       } | null;
       subscription: {
-        plan: "FREE" | "PRO";
+        plan: Plan;
       } | null;
     } | null;
   };

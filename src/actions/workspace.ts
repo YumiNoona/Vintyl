@@ -69,6 +69,7 @@ export const getAllUserVideos = async (workspaceId: string) => {
       select: {
         id: true,
         title: true,
+        description: true,
         createdAt: true,
         source: true,
         processing: true,
