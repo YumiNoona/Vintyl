@@ -12,6 +12,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import ShareModal from "../share-modal";
+import EditVideo from "./edit-video";
 
 type VideoCardProps = {
   id: string;
@@ -19,6 +20,7 @@ type VideoCardProps = {
   createdAt: Date;
   source: string;
   processing: boolean;
+  description: string | null;
   workspaceId: string;
   user?: {
     firstName: string | null;
@@ -38,6 +40,7 @@ export default function VideoCard({
   createdAt,
   source,
   processing,
+  description,
   workspaceId,
   user,
   folder,
@@ -72,6 +75,11 @@ export default function VideoCard({
           className="group overflow-hidden cursor-pointer bg-card/40 relative border-2 border-border flex flex-col rounded-2xl hover:scale-[1.02] hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 ease-out"
         >
           <div className="absolute top-2 right-2 z-10 gap-x-3 hidden group-hover:flex">
+            <EditVideo
+              videoId={id}
+              title={title || ""}
+              description={description || ""}
+            />
             <ShareModal
               videoId={id}
               trigger={

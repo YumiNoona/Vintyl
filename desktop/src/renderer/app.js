@@ -148,7 +148,7 @@ async function startRecording() {
         socket.emit("video-chunks", {
           chunks: reader.result,
           filename: currentFilename,
-          clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh", // Hardcoded for now
+          clerkId: "user_3AsUYxoNXjNqqxQ8RYa01E8LfXh", // Hardcoded for now
         });
       };
       reader.readAsArrayBuffer(event.data);
@@ -162,7 +162,7 @@ async function startRecording() {
     if (socket?.connected) {
       socket.emit("process-video", {
         filename: currentFilename,
-        clerkId: "user_3AsUYxoNXjNqqxQ8RYaO1E8LfXh",
+        clerkId: "user_3AsUYxoNXjNqqxQ8RYa01E8LfXh",
       });
     }
 

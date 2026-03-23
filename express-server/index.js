@@ -6,25 +6,21 @@ const { Server } = require("socket.io");
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
-const { OpenAI } = require("openai");
-const { Readable } = require("stream");
+const { createClient } = require("@supabase/supabase-js");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 const app = express();
 const server = http.createServer(app);
 
-// Initialize S3 & OpenAI
-const s3 = new S3Client({
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  },
-  region: process.env.AWS_REGION,
-});
+// Initialize Supabase & Gemini
+const supabaseUrl = process.env.SUPABASE_URL || "";
+const supabaseKey = process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+const BUCKET = "vintyl-videos";
 
 const io = new Server(server, {
   cors: {
@@ -63,6 +59,12 @@ io.on("connection", (socket) => {
 
       const buffer = Buffer.concat(chunks);
       const filePath = path.join(__dirname, "temp_upload", filename);
+      
+      // Ensure directory exists
+      if (!fs.existsSync(path.join(__dirname, "temp_upload"))) {
+        fs.mkdirSync(path.join(__dirname, "temp_upload"));
+      }
+      
       fs.writeFileSync(filePath, buffer);
 
       // 1. Initial Processing Call to Next.js
@@ -75,49 +77,55 @@ io.on("connection", (socket) => {
         throw new Error("Failed to signal processing to Next.js");
       }
 
-      // 2. Upload to S3
-      const uploadParams = {
-        Bucket: process.env.AWS_BUCKET_NAME,
-        Key: filename,
-        Body: fs.createReadStream(filePath),
-        ContentType: "video/webm",
-      };
+      // 2. Upload to Supabase Storage
+      const fileBuffer = fs.readFileSync(filePath);
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(BUCKET)
+        .upload(filename, fileBuffer, {
+          contentType: "video/webm",
+          upsert: true,
+        });
 
-      await s3.send(new PutObjectCommand(uploadParams));
-      console.log("✅ Uploaded to S3");
+      if (uploadError) {
+        throw new Error(`Supabase Upload Error: ${uploadError.message}`);
+      }
+      console.log("✅ Uploaded to Supabase");
 
-      // 3. Transcription (Whisper)
-      const transcription = await openai.audio.transcriptions.create({
-        file: fs.createReadStream(filePath),
-        model: "whisper-1",
-      });
-      console.log("📝 Transcribed");
-
-      // 4. Summarization (GPT)
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: [
-          {
-            role: "system",
-            content: "Generate a title and a concise summary for this video transcript. Return in JSON format: { \"title\": \"...\", \"summary\": \"...\" }",
+      // 3. AI Processing (Gemini 1.5 Flash)
+      console.log("🤖 Running Gemini AI...");
+      const base64Data = fileBuffer.toString("base64");
+      
+      const result = await model.generateContent([
+        {
+          inlineData: {
+            data: base64Data,
+            mimeType: "video/webm",
           },
-          { role: "user", content: transcription.text },
-        ],
-        response_format: { type: "json_object" },
-      });
-      console.log("💡 Summarized");
+        },
+        "Transcribe this video accurately. Then provide a concise title and a 2-sentence summary. Respond ONLY in valid JSON format: { \"transcript\": \"...\", \"title\": \"...\", \"summary\": \"...\" }",
+      ]);
 
-      // 5. Update Next.js with Transcription/Summary
+      const aiResponseText = result.response.text();
+      const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+      const aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : { transcript: "", title: "Untitled", summary: "" };
+      
+      console.log("📝 AI Enrichment Complete");
+
+      // 4. Update Next.js with Transcription/Summary & Public URL
+      const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filename);
+      const publicUrl = publicUrlData.publicUrl;
+
       await axios.post(
         `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/transcribe`,
         {
           filename,
-          content: completion.choices[0].message.content,
-          transcript: transcription.text,
+          content: JSON.stringify({ title: aiData.title, summary: aiData.summary }),
+          transcript: aiData.transcript,
+          source: publicUrl, // Pass the new Supabase URL
         }
       );
 
-      // 6. Complete Processing Call
+      // 5. Complete Processing Call
       await axios.post(
         `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/complete`,
         { filename }

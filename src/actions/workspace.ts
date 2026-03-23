@@ -2,6 +2,7 @@
 
 import { currentUser } from "@clerk/nextjs/server";
 import { client } from "@/lib/prisma";
+import axios from "axios";
 
 export const verifyAccessToWorkspace = async (workspaceId: string) => {
   try {
@@ -458,5 +459,44 @@ export const updateFolderLocation = async (
     return { status: 404, data: "Folder not found" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
+  }
+};
+
+export const getHowToPost = async () => {
+  try {
+    const posts = await axios.get(process.env.CLOUD_WAYS_POSTS as string);
+    if (posts.data) {
+      // Return the first post as showcased in the transcript
+      return {
+        status: 200,
+        data: {
+          title: posts.data[0].title.rendered,
+          content: posts.data[0].content.rendered,
+        },
+      };
+    }
+    return { status: 404 };
+  } catch (error) {
+    return { status: 400 };
+  }
+};
+
+export const editVideoInfo = async (
+  videoId: string,
+  title: string,
+  description: string
+) => {
+  try {
+    const video = await client.video.update({
+      where: { id: videoId },
+      data: {
+        title,
+        description,
+      },
+    });
+    if (video) return { status: 200, data: "Video details updated" };
+    return { status: 404, data: "Video not found" };
+  } catch (error) {
+    return { status: 400, data: "Failed to update video" };
   }
 };

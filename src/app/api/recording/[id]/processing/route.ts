@@ -3,12 +3,13 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await req.json()
     const { filename } = body // The key/filename used in S3
-    const userId = params.id // This is the Clerk ID sent from Express
+    const userId = id // This is the Clerk ID sent from Express
 
     // Resolve Clerk ID to internal Prisma User ID
     const user = await client.user.findUnique({

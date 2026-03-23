@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
-import { getUploadUrl } from "@/lib/s3"
 import { client } from "@/lib/prisma"
+import { supabase } from "@/lib/storage"
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,26 +33,27 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate unique S3 key
+    // Generate unique Key
     const videoId = crypto.randomUUID()
     const ext = fileName.split(".").pop() || "webm"
-    const key = `videos/${workspaceId}/${videoId}.${ext}`
+    const key = `${videoId}.${ext}`
+    const bucketName = "vintyl-videos"
 
-    // Check for placeholder credentials and use mock if needed
-    const isMock = process.env.AWS_ACCESS_KEY_ID === "your_access_key" || !process.env.AWS_ACCESS_KEY_ID
-    
-    let uploadUrl: string
-    if (isMock) {
-      console.log("🛠️ Using MOCK upload path for development")
-      uploadUrl = `${process.env.NEXT_PUBLIC_HOST_URL || "http://localhost:3000"}/api/upload/mock`
-    } else {
-      uploadUrl = await getUploadUrl(key, contentType)
+    // Create a signed upload URL for Supabase
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from(bucketName)
+      .createSignedUploadUrl(key)
+
+    if (uploadError) {
+      console.error("Supabase signed URL error:", uploadError)
+      return NextResponse.json({ error: "Failed to generate upload URL" }, { status: 500 })
     }
 
-    // Save video record in Prisma
-    const cloudFrontUrl = process.env.CLOUDFRONT_URL
-    const sourcePath = cloudFrontUrl ? `${cloudFrontUrl}/${key}` : `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+    // Get the public URL for the source path
+    const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(key)
+    const sourcePath = publicUrlData.publicUrl
 
+    // Save video record in Prisma
     await client.video.create({
       data: {
         id: videoId,
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
     })
 
     return NextResponse.json({
-      uploadUrl,
+      uploadUrl: uploadData.signedUrl,
       key,
       videoId,
     }, {

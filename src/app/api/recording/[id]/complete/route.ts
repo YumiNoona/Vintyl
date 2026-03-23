@@ -3,14 +3,15 @@ import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const body = await req.json()
     const { filename } = body
 
     const user = await client.user.findUnique({
-      where: { clerkId: params.id },
+      where: { clerkId: id },
       select: { id: true }
     })
 

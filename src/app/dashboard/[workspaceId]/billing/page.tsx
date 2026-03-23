@@ -74,10 +74,10 @@ export default function BillingPage() {
 
   const currentPlan = (subData as any)?.data?.plan || "FREE";
 
-  const handleUpgrade = async () => {
+  const handleUpgrade = async (plan: "PRO" | "TEAM") => {
     setLoading(true);
     try {
-      const result = await createCheckoutSession();
+      const result = await createCheckoutSession(plan);
       if (result.status === 200 && result.data) {
         window.location.href = result.data;
       } else {
@@ -91,7 +91,7 @@ export default function BillingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Hero Section */}
       <div className="pt-20 pb-16 px-4 sm:px-8 lg:px-12 text-center max-w-4xl mx-auto">
         <motion.div
@@ -176,8 +176,14 @@ export default function BillingPage() {
               </div>
 
               <Button
-                onClick={plan.name === "Pro" ? handleUpgrade : undefined}
-                disabled={loading}
+                onClick={
+                  plan.name === "Pro" 
+                    ? () => handleUpgrade("PRO") 
+                    : plan.name === "Team" 
+                      ? () => handleUpgrade("TEAM") 
+                      : undefined
+                }
+                disabled={loading || currentPlan === plan.name.toUpperCase()}
                 className={cn(
                   "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg",
                   plan.variant === "premium" 
@@ -185,10 +191,10 @@ export default function BillingPage() {
                     : "bg-foreground text-background hover:bg-foreground/90"
                 )}
               >
-                {loading && plan.name === "Pro" ? (
+                {loading ? (
                   <Loader2 className="animate-spin" />
                 ) : (
-                  plan.name === "Starter" ? "Current Plan" : plan.buttonText
+                  currentPlan === plan.name.toUpperCase() ? "Current Plan" : plan.buttonText
                 )}
               </Button>
             </motion.div>

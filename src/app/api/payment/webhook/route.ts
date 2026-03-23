@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
         const session = event.data.object;
         const clerkId = session.metadata?.clerkId;
         const customerId = session.customer as string;
+        const plan = (session.metadata?.plan as "PRO" | "TEAM") || "PRO";
 
         if (clerkId) {
           await client.user.update({
@@ -34,11 +35,11 @@ export async function POST(req: NextRequest) {
                 upsert: {
                   create: {
                     customerId,
-                    plan: "PRO",
+                    plan: plan,
                   },
                   update: {
                     customerId,
-                    plan: "PRO",
+                    plan: plan,
                   },
                 },
               },
@@ -60,15 +61,26 @@ export async function POST(req: NextRequest) {
       }
 
       case "customer.subscription.updated": {
-        const subscription = event.data.object;
+        const subscription = event.data.object as any;
         const customerId = subscription.customer as string;
         const isActive =
           subscription.status === "active" ||
           subscription.status === "trialing";
 
+        const priceId = subscription.items.data[0].price.id;
+        let plan: "PRO" | "TEAM" | "FREE" = "FREE";
+
+        if (isActive) {
+          if (priceId === process.env.STRIPE_TEAM_PRICE_ID) {
+            plan = "TEAM";
+          } else {
+            plan = "PRO";
+          }
+        }
+
         await client.subscription.updateMany({
           where: { customerId },
-          data: { plan: isActive ? "PRO" : "FREE" },
+          data: { plan },
         });
         break;
       }

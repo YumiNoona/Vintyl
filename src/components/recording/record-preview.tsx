@@ -47,6 +47,14 @@ export default function RecordPreview({
   const [isLoadingFolders, setIsLoadingFolders] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
 
+  const [activePanel, setActivePanel] = React.useState<"trim" | "canvas" | "music" | null>(null);
+  const [trimStart, setTrimStart] = React.useState(0);
+  const [trimEnd, setTrimEnd] = React.useState(100);
+  const [canvasSize, setCanvasSize] = React.useState<"16:9" | "9:16" | "1:1" | "4:3">("16:9");
+  const [selectedTrack, setSelectedTrack] = React.useState<string | null>(null);
+  const [musicVolume, setMusicVolume] = React.useState(50);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
   const videoUrl = videoId ? `${window.location.origin}/preview/${videoId}` : "";
 
   React.useEffect(() => {
@@ -77,12 +85,35 @@ export default function RecordPreview({
     toast.success("Exporting your video...");
   };
 
+  const canvasSizes = [
+    { label: "Landscape", ratio: "16:9" as const, icon: "🖥️" },
+    { label: "Portrait", ratio: "9:16" as const, icon: "📱" },
+    { label: "Square", ratio: "1:1" as const, icon: "⬜" },
+    { label: "Classic", ratio: "4:3" as const, icon: "📺" },
+  ];
+
+  const musicTracks = [
+    { id: "chill", name: "Chill Vibes", genre: "Lo-Fi", duration: "2:30" },
+    { id: "upbeat", name: "Energy Boost", genre: "Electronic", duration: "3:15" },
+    { id: "corporate", name: "Clean Focus", genre: "Corporate", duration: "2:45" },
+    { id: "acoustic", name: "Soft Morning", genre: "Acoustic", duration: "3:00" },
+  ];
+
+  const getAspectClass = () => {
+    switch (canvasSize) {
+      case "9:16": return "aspect-[9/16] max-h-[70vh]";
+      case "1:1": return "aspect-square max-h-[70vh]";
+      case "4:3": return "aspect-[4/3] max-h-[70vh]";
+      default: return "aspect-video";
+    }
+  };
+
   if (isEditing) {
     return (
       <div className="fixed inset-0 bg-background z-50 flex flex-col">
         <div className="h-20 border-b border-border flex items-center justify-between px-8 bg-card">
           <div className="flex items-center gap-6">
-            <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary" onClick={() => setIsEditing(false)}>
+            <Button variant="ghost" size="icon" className="rounded-full hover:bg-secondary" onClick={() => { setIsEditing(false); setActivePanel(null); }}>
               <X size={22} className="text-muted-foreground" />
             </Button>
             <div className="flex items-center gap-3">
@@ -91,64 +122,132 @@ export default function RecordPreview({
             </div>
           </div>
           <div className="flex items-center gap-4">
-             <Button variant="outline" className="h-12 px-8 rounded-2xl border-2 border-border font-bold uppercase tracking-widest text-xs" onClick={() => setIsEditing(false)}>Cancel</Button>
-             <Button className="h-12 px-8 rounded-2xl bg-foreground text-background hover:bg-foreground/90 font-black uppercase tracking-widest text-xs shadow-2xl" onClick={() => setIsEditing(false)}>Save Changes</Button>
+             <Button variant="outline" className="h-12 px-8 rounded-2xl border-2 border-border font-bold uppercase tracking-widest text-xs" onClick={() => { setIsEditing(false); setActivePanel(null); }}>Cancel</Button>
+             <Button className="h-12 px-8 rounded-2xl bg-foreground text-background hover:bg-foreground/90 font-black uppercase tracking-widest text-xs shadow-2xl" onClick={() => { toast.success("Changes saved!"); setIsEditing(false); setActivePanel(null); }}>Save Changes</Button>
           </div>
         </div>
         
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 bg-black/95 flex items-center justify-center p-12">
-            <div className="aspect-video w-full max-w-5xl bg-neutral-900 rounded-[3rem] overflow-hidden border-4 border-white/10 relative shadow-[0_40px_100px_rgba(0,0,0,0.5)]">
-              <video src={video} controls className="w-full h-full object-contain" />
+            <div className={`w-full max-w-5xl bg-neutral-900 rounded-[3rem] overflow-hidden border-4 border-white/10 relative shadow-[0_40px_100px_rgba(0,0,0,0.5)] ${getAspectClass()}`}>
+              <video ref={videoRef} src={video} controls className="w-full h-full object-contain" />
               <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
             </div>
           </div>
           
-          <div className="w-96 border-l border-border bg-card p-8 flex flex-col gap-10">
+          <div className="w-96 border-l border-border bg-card p-8 flex flex-col gap-10 overflow-y-auto">
              <div className="space-y-6">
                <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.3em] mb-4">Editing Suite</h3>
                
-               <Button 
-                variant="outline" 
-                className="w-full h-16 justify-between px-6 rounded-3xl border-2 border-border hover:border-foreground/20 hover:bg-secondary group transition-all"
-                onClick={() => toast.info("AI Clipping is analyzing your video...")}
-               >
-                 <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 group-hover:bg-purple-500 group-hover:text-white transition-all">
-                      <Scissors size={20} />
-                    </div>
-                    <span className="font-bold text-sm">Cut & Trim</span>
-                 </div>
-                 <ChevronRight size={16} className="text-muted-foreground" />
-               </Button>
+               {/* Cut & Trim */}
+               <div>
+                 <Button 
+                  variant="outline" 
+                  className={`w-full h-16 justify-between px-6 rounded-3xl border-2 group transition-all ${activePanel === "trim" ? "border-purple-500 bg-purple-500/5" : "border-border hover:border-foreground/20 hover:bg-secondary"}`}
+                  onClick={() => setActivePanel(activePanel === "trim" ? null : "trim")}
+                 >
+                   <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl transition-all ${activePanel === "trim" ? "bg-purple-500 text-white" : "bg-purple-500/10 text-purple-600 group-hover:bg-purple-500 group-hover:text-white"}`}>
+                        <Scissors size={20} />
+                      </div>
+                      <span className="font-bold text-sm">Cut & Trim</span>
+                   </div>
+                   <ChevronRight size={16} className={`text-muted-foreground transition-transform ${activePanel === "trim" ? "rotate-90" : ""}`} />
+                 </Button>
+                 {activePanel === "trim" && (
+                   <div className="mt-4 p-6 bg-secondary/30 rounded-2xl border border-border space-y-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                     <div className="space-y-2">
+                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Start Point ({trimStart}%)</label>
+                       <input type="range" min={0} max={trimEnd - 1} value={trimStart} onChange={(e) => { setTrimStart(Number(e.target.value)); if (videoRef.current) videoRef.current.currentTime = (Number(e.target.value) / 100) * (videoRef.current.duration || 0); }} className="w-full accent-purple-500" />
+                     </div>
+                     <div className="space-y-2">
+                       <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">End Point ({trimEnd}%)</label>
+                       <input type="range" min={trimStart + 1} max={100} value={trimEnd} onChange={(e) => setTrimEnd(Number(e.target.value))} className="w-full accent-purple-500" />
+                     </div>
+                     <div className="flex justify-between text-xs text-muted-foreground font-bold">
+                       <span>Keeping {trimEnd - trimStart}% of clip</span>
+                       <button className="text-purple-500 hover:underline" onClick={() => { setTrimStart(0); setTrimEnd(100); }}>Reset</button>
+                     </div>
+                   </div>
+                 )}
+               </div>
 
-               <Button 
-                variant="outline" 
-                className="w-full h-16 justify-between px-6 rounded-3xl border-2 border-border hover:border-foreground/20 hover:bg-secondary group transition-all"
-                onClick={() => toast.info("Adjusting canvas aspect ratio...")}
-               >
-                 <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white transition-all">
-                      <Layout size={20} />
-                    </div>
-                    <span className="font-bold text-sm">Canvas Size</span>
-                 </div>
-                 <ChevronRight size={16} className="text-muted-foreground" />
-               </Button>
+               {/* Canvas Size */}
+               <div>
+                 <Button 
+                  variant="outline" 
+                  className={`w-full h-16 justify-between px-6 rounded-3xl border-2 group transition-all ${activePanel === "canvas" ? "border-blue-500 bg-blue-500/5" : "border-border hover:border-foreground/20 hover:bg-secondary"}`}
+                  onClick={() => setActivePanel(activePanel === "canvas" ? null : "canvas")}
+                 >
+                   <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl transition-all ${activePanel === "canvas" ? "bg-blue-500 text-white" : "bg-blue-500/10 text-blue-600 group-hover:bg-blue-500 group-hover:text-white"}`}>
+                        <Layout size={20} />
+                      </div>
+                      <span className="font-bold text-sm">Canvas Size</span>
+                   </div>
+                   <ChevronRight size={16} className={`text-muted-foreground transition-transform ${activePanel === "canvas" ? "rotate-90" : ""}`} />
+                 </Button>
+                 {activePanel === "canvas" && (
+                   <div className="mt-4 grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                     {canvasSizes.map((size) => (
+                       <button
+                         key={size.ratio}
+                         onClick={() => setCanvasSize(size.ratio)}
+                         className={`p-4 rounded-2xl border-2 text-center transition-all ${canvasSize === size.ratio ? "border-blue-500 bg-blue-500/10" : "border-border hover:border-blue-500/30"}`}
+                       >
+                         <div className="text-2xl mb-1">{size.icon}</div>
+                         <div className="text-xs font-black uppercase">{size.label}</div>
+                         <div className="text-[10px] text-muted-foreground font-bold">{size.ratio}</div>
+                       </button>
+                     ))}
+                   </div>
+                 )}
+               </div>
 
-               <Button 
-                variant="outline" 
-                className="w-full h-16 justify-between px-6 rounded-3xl border-2 border-border hover:border-foreground/20 hover:bg-secondary group transition-all"
-                onClick={() => toast.info("Library loading...")}
-               >
-                 <div className="flex items-center gap-4">
-                    <div className="p-2 rounded-xl bg-orange-500/10 text-orange-600 group-hover:bg-orange-500 group-hover:text-white transition-all">
-                      <Music size={20} />
-                    </div>
-                    <span className="font-bold text-sm">Background Music</span>
-                 </div>
-                 <ChevronRight size={16} className="text-muted-foreground" />
-               </Button>
+               {/* Background Music */}
+               <div>
+                 <Button 
+                  variant="outline" 
+                  className={`w-full h-16 justify-between px-6 rounded-3xl border-2 group transition-all ${activePanel === "music" ? "border-orange-500 bg-orange-500/5" : "border-border hover:border-foreground/20 hover:bg-secondary"}`}
+                  onClick={() => setActivePanel(activePanel === "music" ? null : "music")}
+                 >
+                   <div className="flex items-center gap-4">
+                      <div className={`p-2 rounded-xl transition-all ${activePanel === "music" ? "bg-orange-500 text-white" : "bg-orange-500/10 text-orange-600 group-hover:bg-orange-500 group-hover:text-white"}`}>
+                        <Music size={20} />
+                      </div>
+                      <span className="font-bold text-sm">Background Music</span>
+                   </div>
+                   <ChevronRight size={16} className={`text-muted-foreground transition-transform ${activePanel === "music" ? "rotate-90" : ""}`} />
+                 </Button>
+                 {activePanel === "music" && (
+                   <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                     {musicTracks.map((track) => (
+                       <button
+                         key={track.id}
+                         onClick={() => setSelectedTrack(selectedTrack === track.id ? null : track.id)}
+                         className={`w-full p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${selectedTrack === track.id ? "border-orange-500 bg-orange-500/10" : "border-border hover:border-orange-500/30"}`}
+                       >
+                         <div className="flex items-center gap-3">
+                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-black ${selectedTrack === track.id ? "bg-orange-500 text-white" : "bg-secondary text-muted-foreground"}`}>
+                             {selectedTrack === track.id ? "♫" : "♪"}
+                           </div>
+                           <div className="text-left">
+                             <div className="text-xs font-bold">{track.name}</div>
+                             <div className="text-[10px] text-muted-foreground">{track.genre}</div>
+                           </div>
+                         </div>
+                         <span className="text-[10px] text-muted-foreground font-bold">{track.duration}</span>
+                       </button>
+                     ))}
+                     {selectedTrack && (
+                       <div className="p-4 bg-secondary/30 rounded-2xl border border-border space-y-2">
+                         <label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Volume ({musicVolume}%)</label>
+                         <input type="range" min={0} max={100} value={musicVolume} onChange={(e) => setMusicVolume(Number(e.target.value))} className="w-full accent-orange-500" />
+                       </div>
+                     )}
+                   </div>
+                 )}
+               </div>
              </div>
 
              <div className="space-y-4">
@@ -186,6 +285,7 @@ export default function RecordPreview({
       </div>
     );
   }
+
 
   if (step === "CHOOSING_FOLDER") {
     return (

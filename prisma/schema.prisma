@@ -20,6 +20,7 @@ enum Type {
 enum Plan {
   FREE
   PRO
+  TEAM
 }
 
 model User {

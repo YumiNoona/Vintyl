@@ -1,11 +1,6 @@
 "use server";
 
 import { client } from "@/lib/prisma";
-import { OpenAI } from "openai";
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export const getVideoDetails = async (videoId: string) => {
   try {

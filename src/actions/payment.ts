@@ -21,7 +21,7 @@ export const getSubscription = async () => {
   }
 };
 
-export const createCheckoutSession = async () => {
+export const createCheckoutSession = async (plan: "PRO" | "TEAM") => {
   try {
     const user = await currentUser();
     if (!user) return { status: 401, data: null };
@@ -33,9 +33,9 @@ export const createCheckoutSession = async () => {
 
     if (!dbUser) return { status: 404, data: null };
 
-    // If already PRO, return portal link
+    // If already subscribed to the same plan, return portal link
     if (
-      dbUser.subscription?.plan === "PRO" &&
+      dbUser.subscription?.plan === plan &&
       dbUser.subscription.customerId
     ) {
       const portalSession = await stripe.billingPortal.sessions.create({
@@ -45,12 +45,17 @@ export const createCheckoutSession = async () => {
       return { status: 200, data: portalSession.url };
     }
 
-    // Create checkout session for PRO plan
+    const priceId =
+      plan === "PRO"
+        ? process.env.STRIPE_PRO_PRICE_ID
+        : process.env.STRIPE_TEAM_PRICE_ID;
+
+    // Create checkout session
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       line_items: [
         {
-          price: process.env.STRIPE_SUBSCRIPTION_PRICE_ID as string,
+          price: priceId as string,
           quantity: 1,
         },
       ],
@@ -60,6 +65,7 @@ export const createCheckoutSession = async () => {
       metadata: {
         clerkId: user.id,
         userId: dbUser.id,
+        plan: plan,
       },
     });
 
