@@ -34,25 +34,7 @@ export default function VideoList({
         <h2 className="text-foreground text-xl font-bold tracking-tight">Videos</h2>
       </div>
 
-      {!isFetched ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="w-full h-[240px] bg-secondary/50 rounded-xl border border-border overflow-hidden flex flex-col"
-            >
-              <div className="h-40 bg-muted animate-pulse" />
-              <div className="p-4 flex flex-col gap-3">
-                <div className="h-4 w-3/4 bg-muted animate-pulse rounded" />
-                <div className="flex gap-2 items-center">
-                  <div className="w-7 h-7 rounded-full bg-muted animate-pulse" />
-                  <div className="h-3 w-1/2 bg-muted animate-pulse rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : status === 200 && videos && videos.length > 0 ? (
+      {!isFetched ? null : status === 200 && videos && videos.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
           {videos.map((video) => (
             <VideoCard

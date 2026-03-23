@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { client } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as any;
-        const clerkId = session.metadata?.clerkId;
+        const supabaseId = session.metadata?.supabaseId;
         const customerId = session.customer as string;
         
         let plan: any = session.metadata?.plan;
@@ -37,24 +37,21 @@ export async function POST(req: NextRequest) {
            else if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) plan = "ENTERPRISE";
         }
 
-        if (clerkId) {
-          await client.user.update({
-            where: { clerkId },
-            data: {
-              subscription: {
-                upsert: {
-                  create: {
+        if (supabaseId) {
+            // Get user id first
+            const { data: user } = await supabaseAdmin
+                .from("User")
+                .select("id")
+                .eq("supabaseId", supabaseId)
+                .single();
+
+            if (user) {
+                await supabaseAdmin.from("Subscription").upsert({
+                    userId: user.id,
                     customerId,
                     plan: plan || "PRO",
-                  },
-                  update: {
-                    customerId,
-                    plan: plan || "PRO",
-                  },
-                },
-              },
-            },
-          });
+                });
+            }
         }
         break;
       }
@@ -63,10 +60,10 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as any;
         const customerId = subscription.customer as string;
 
-        await client.subscription.updateMany({
-          where: { customerId },
-          data: { plan: "FREE" },
-        });
+        await supabaseAdmin
+            .from("Subscription")
+            .update({ plan: "FREE" })
+            .eq("customerId", customerId);
         break;
       }
 
@@ -92,10 +89,10 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        await client.subscription.updateMany({
-          where: { customerId },
-          data: { plan },
-        });
+        await supabaseAdmin
+            .from("Subscription")
+            .update({ plan })
+            .eq("customerId", customerId);
         break;
       }
     }

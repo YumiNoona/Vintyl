@@ -22,8 +22,8 @@ const closeBtn = document.getElementById("close-btn");
 // Account UI
 const linkBtn = document.getElementById("link-btn");
 const linkContainer = document.getElementById("link-input-container");
-const clerkIdInput = document.getElementById("clerk-id-input");
-const saveClerkIdBtn = document.getElementById("save-clerk-id");
+const userIdInput = document.getElementById("user-id-input");
+const saveUserIdBtn = document.getElementById("save-user-id");
 const userDisplay = document.getElementById("user-display");
 const planBadge = document.getElementById("plan-badge");
 
@@ -35,12 +35,12 @@ let seconds = 0;
 let socket = null;
 let currentFilename = "";
 let userPlan = "FREE";
-let currentUserClerkId = localStorage.getItem("vintyl_clerk_id") || "";
+let currentUserId = localStorage.getItem("vintyl_user_id") || "";
 
 // ===== Initialize =====
-if (currentUserClerkId) {
+if (currentUserId) {
   userDisplay.textContent = "Linked Account";
-  clerkIdInput.value = currentUserClerkId;
+  userIdInput.value = currentUserId;
 }
 
 // ===== Socket.IO Connection =====
@@ -52,8 +52,8 @@ function connectSocket() {
     statusText.textContent = "Connected to server";
     
     // Fetch plan on connect if linked
-    if (currentUserClerkId) {
-      socket.emit("start-recording", { clerkId: currentUserClerkId });
+    if (currentUserId) {
+      socket.emit("start-recording", { userId: currentUserId });
     }
   });
 
@@ -87,17 +87,17 @@ linkBtn.addEventListener("click", () => {
   linkContainer.style.display = linkContainer.style.display === "none" ? "block" : "none";
 });
 
-saveClerkIdBtn.addEventListener("click", () => {
-  const newId = clerkIdInput.value.trim();
+saveUserIdBtn.addEventListener("click", () => {
+  const newId = userIdInput.value.trim();
   if (newId) {
-    currentUserClerkId = newId;
-    localStorage.setItem("vintyl_clerk_id", newId);
+    currentUserId = newId;
+    localStorage.setItem("vintyl_user_id", newId);
     userDisplay.textContent = "Linked Account";
     linkContainer.style.display = "none";
     
     // Refetch plan
     if (socket?.connected) {
-      socket.emit("start-recording", { clerkId: currentUserClerkId });
+      socket.emit("start-recording", { userId: currentUserId });
     }
   }
 });
@@ -175,7 +175,7 @@ sourceSelect.addEventListener("change", async () => {
 // ===== Recording =====
 async function startRecording() {
   if (!stream) return;
-  if (!currentUserClerkId) {
+  if (!currentUserId) {
     statusText.textContent = "⚠️ Please link account first";
     return;
   }
@@ -198,7 +198,7 @@ async function startRecording() {
         socket.emit("video-chunks", {
           chunks: reader.result,
           filename: currentFilename,
-          clerkId: currentUserClerkId,
+          userId: currentUserId,
         });
       };
       reader.readAsArrayBuffer(event.data);
@@ -212,7 +212,7 @@ async function startRecording() {
     if (socket?.connected) {
       socket.emit("process-video", {
         filename: currentFilename,
-        clerkId: currentUserClerkId,
+        userId: currentUserId,
       });
     }
 
@@ -231,7 +231,7 @@ async function startRecording() {
 
   // Notify server to verify state
   if (socket?.connected) {
-    socket.emit("start-recording", { clerkId: currentUserClerkId });
+    socket.emit("start-recording", { userId: currentUserId });
   }
 
   startBtn.style.display = "none";

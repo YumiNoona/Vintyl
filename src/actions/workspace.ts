@@ -1,35 +1,26 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
-import { client } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import axios from "axios";
 
 export const verifyAccessToWorkspace = async (workspaceId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const isUserInWorkspace = await client.workspace.findUnique({
-      where: {
-        id: workspaceId,
-        OR: [
-          {
-            user: { clerkId: user.id },
-          },
-          {
-            members: {
-              every: {
-                user: { clerkId: user.id },
-              },
-            },
-          },
-        ],
-      },
-    });
+    const { data: workspace } = await supabase
+      .from("Workspace")
+      .select("*, Member(*)")
+      .eq("id", workspaceId)
+      .or(`userId.eq.${user.id},Member.userId.eq.${user.id}`)
+      .single();
+
+    if (!workspace) return { status: 403 };
 
     return {
       status: 200,
-      data: { workspace: isUserInWorkspace },
+      data: { workspace },
     };
   } catch (error) {
     return { status: 403, data: { workspace: null } };
@@ -38,17 +29,14 @@ export const verifyAccessToWorkspace = async (workspaceId: string) => {
 
 export const getWorkspaceFolders = async (workspaceId: string) => {
   try {
-    const isFolders = await client.folder.findMany({
-      where: { workspaceId },
-      include: {
-        _count: {
-          select: { videos: true },
-        },
-      },
-    });
+    const supabase = await createClient();
+    const { data: folders } = await supabase
+      .from("Folder")
+      .select("*, Video(count)")
+      .eq("workspaceId", workspaceId);
 
-    if (isFolders && isFolders.length > 0) {
-      return { status: 200, data: isFolders };
+    if (folders && folders.length > 0) {
+      return { status: 200, data: folders };
     }
 
     return { status: 404, data: [] };
@@ -59,31 +47,15 @@ export const getWorkspaceFolders = async (workspaceId: string) => {
 
 export const getAllUserVideos = async (workspaceId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: [] };
 
-    const videos = await client.video.findMany({
-      where: {
-        OR: [{ workspaceId }, { folderId: workspaceId }],
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        createdAt: true,
-        source: true,
-        processing: true,
-        folder: { select: { id: true, name: true } },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            image: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-    });
+    const { data: videos } = await supabase
+      .from("Video")
+      .select("*, Folder(id, name), User(firstName, lastName, image)")
+      .or(`workspaceId.eq.${workspaceId},folderId.eq.${workspaceId}`)
+      .order("createdAt", { ascending: true });
 
     if (videos && videos.length > 0) {
       return { status: 200, data: videos };
@@ -97,28 +69,22 @@ export const getAllUserVideos = async (workspaceId: string) => {
 
 export const getWorkspaces = async () => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const workspaces = await client.user.findUnique({
-      where: { clerkId: user.id },
-      select: {
-        subscription: { select: { plan: true } },
-        workspace: {
-          select: { id: true, name: true, type: true },
-        },
-        members: {
-          select: {
-            workspace: {
-              select: { id: true, name: true, type: true },
-            },
-          },
-        },
-      },
-    });
+    const { data: userData } = await supabase
+      .from("User")
+      .select("subscription:Subscription(plan), workspace:Workspace(id, name, type), Member(workspace:Workspace(id, name, type))")
+      .eq("supabaseId", user.id)
+      .single();
 
-    if (workspaces) {
-      return { status: 200, data: workspaces };
+    if (userData) {
+        const flattenedWorkspaces = [
+            ...(userData.workspace || []),
+            ...(userData.Member?.map((m: any) => m.workspace).filter(Boolean) || [])
+        ];
+      return { status: 200, data: { ...userData, workspace: flattenedWorkspaces } };
     }
 
     return { status: 400 };
@@ -129,30 +95,30 @@ export const getWorkspaces = async () => {
 
 export const createWorkspace = async (name: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const authorized = await client.user.findUnique({
-      where: { clerkId: user.id },
-      select: { subscription: { select: { plan: true } } },
-    });
+    const { data: authorized } = await supabase
+      .from("Subscription")
+      .select("plan")
+      .eq("userId", user.id)
+      .single();
 
-    const isPro = authorized?.subscription?.plan === "PRO";
+    const isPro = authorized?.plan === "PRO";
     const workspaceType = isPro ? "PUBLIC" : "PERSONAL";
 
-    const workspace = await client.user.update({
-      where: { clerkId: user.id },
-      data: {
-        workspace: {
-          create: {
-            name,
-            type: workspaceType,
-          },
-        },
-      },
-    });
+    const { data: workspace, error } = await supabase
+      .from("Workspace")
+      .insert({
+        name,
+        type: workspaceType,
+        userId: user.id
+      })
+      .select()
+      .single();
 
-    if (workspace) {
+    if (workspace && !error) {
       return { 
         status: 201, 
         data: `Workspace created as ${workspaceType.toLowerCase()}` 
@@ -167,16 +133,15 @@ export const createWorkspace = async (name: string) => {
 
 export const createFolder = async (workspaceId: string) => {
   try {
-    const isNewFolder = await client.workspace.update({
-      where: { id: workspaceId },
-      data: {
-        folders: {
-          create: { name: "Untitled" },
-        },
-      },
-    });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: folder, error } = await supabase
+      .from("Folder")
+      .insert({ workspaceId, userId: user?.id, name: "Untitled" })
+      .select()
+      .single();
 
-    if (isNewFolder) {
+    if (folder && !error) {
       return { status: 200, message: "New folder created" };
     }
 
@@ -188,12 +153,13 @@ export const createFolder = async (workspaceId: string) => {
 
 export const renameFolders = async (folderId: string, name: string) => {
   try {
-    const folder = await client.folder.update({
-      where: { id: folderId },
-      data: { name },
-    });
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("Folder")
+      .update({ name })
+      .eq("id", folderId);
 
-    if (folder) {
+    if (!error) {
       return { status: 200, data: "Folder renamed" };
     }
 
@@ -209,42 +175,40 @@ export const inviteMembers = async (
   email: string
 ) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const senderInfo = await client.user.findUnique({
-      where: { clerkId: user.id },
-      select: { id: true, firstName: true, lastName: true },
-    });
+    const { data: senderInfo } = await supabase
+      .from("User")
+      .select("id, firstName, lastName")
+      .eq("supabaseId", user.id)
+      .single();
 
     if (senderInfo?.id) {
-      const workspace = await client.workspace.findUnique({
-        where: { id: workspaceId },
-        select: { name: true },
-      });
+      const { data: workspace } = await supabase
+        .from("Workspace")
+        .select("name")
+        .eq("id", workspaceId)
+        .single();
 
       if (workspace) {
-        const invite = await client.invite.create({
-          data: {
+        const { error: inviteError } = await supabase
+          .from("Invite")
+          .insert({
             senderId: senderInfo.id,
             receiverId,
             workspaceId,
+            email,
             content: `You are invited to join ${workspace.name} workspace`,
-          },
+          });
+
+        await supabase.from("Notification").insert({
+          userId: receiverId,
+          content: `${senderInfo.firstName} ${senderInfo.lastName} invited you to ${workspace.name}`,
         });
 
-        await client.user.update({
-          where: { clerkId: user.id },
-          data: {
-            notifications: {
-              create: {
-                content: `${user.firstName} ${user.lastName} invited a member to ${workspace.name}`,
-              },
-            },
-          },
-        });
-
-        if (invite) {
+        if (!inviteError) {
           return { status: 200, data: "Invite sent" };
         }
 
@@ -266,15 +230,16 @@ export const moveVideoLocation = async (
   folderId: string
 ) => {
   try {
-    const location = await client.video.update({
-      where: { id: videoId },
-      data: {
-        folderId: folderId || null,
-        workspaceId: workSpaceId,
-      },
-    });
+    const supabase = await createClient();
+    const { error } = await supabase
+        .from("Video")
+        .update({
+            folderId: folderId || null,
+            workspaceId: workSpaceId,
+        })
+        .eq("id", videoId);
 
-    if (location) return { status: 200, data: "folder changed successfully" };
+    if (!error) return { status: 200, data: "folder changed successfully" };
 
     return { status: 404, data: "workspace/folder not found" };
   } catch (error) {
@@ -284,43 +249,49 @@ export const moveVideoLocation = async (
 
 export const acceptInvite = async (inviteId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401 };
 
-    const dbUser = await client.user.findUnique({
-      where: { clerkId: user.id },
-      select: { id: true },
-    });
+    const { data: dbUser } = await supabase
+      .from("User")
+      .select("id")
+      .eq("supabaseId", user.id)
+      .single();
 
     if (!dbUser) return { status: 404, data: "User not found" };
 
-    const invite = await client.invite.findUnique({
-      where: { id: inviteId },
-      include: { workspace: { select: { name: true } } },
-    });
+    const { data: invite } = await supabase
+      .from("Invite")
+      .select("*, Workspace(name)")
+      .eq("id", inviteId)
+      .single();
 
     if (!invite) return { status: 404, data: "Invite not found" };
     if (invite.accepted) return { status: 400, data: "Invite already accepted" };
 
-    // Accept invite and add as member
-    await client.$transaction([
-      client.invite.update({
-        where: { id: inviteId },
-        data: { accepted: true },
-      }),
-      client.member.create({
-        data: {
-          userId: dbUser.id,
-          workspaceId: invite.workspaceId,
-        },
-      }),
-      client.notification.create({
-        data: {
-          userId: invite.senderId!,
-          content: `${user.firstName} accepted the invite to ${invite.workspace.name}`,
-        },
-      }),
-    ]);
+    if (invite.email && user.email !== invite.email) {
+      return { status: 401, data: "This invite was sent to a different email address" };
+    }
+
+    const { error: inviteUpdateError } = await supabase
+      .from("Invite")
+      .update({ accepted: true })
+      .eq("id", inviteId);
+
+    const { error: memberError } = await supabase
+      .from("Member")
+      .insert({
+        userId: dbUser.id,
+        workspaceId: invite.workspaceId,
+      });
+
+    await supabase.from("Notification").insert({
+      userId: invite.senderId!,
+      content: `${user.user_metadata?.first_name || user.email} accepted the invite to ${invite.Workspace.name}`,
+    });
+
+    if (inviteUpdateError || memberError) throw new Error("Failed to accept invite");
 
     return { status: 200, data: "Invite accepted" };
   } catch (error) {
@@ -330,38 +301,15 @@ export const acceptInvite = async (inviteId: string) => {
 
 export const getWorkspaceMembers = async (workspaceId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const members = await client.workspace.findUnique({
-      where: {
-        id: workspaceId,
-      },
-      select: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            email: true,
-            image: true,
-          },
-        },
-        members: {
-          select: {
-            user: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                image: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const { data: members } = await supabase
+      .from("Workspace")
+      .select("user:User(id, firstName, lastName, email, image), members:Member(user:User(id, firstName, lastName, email, image))")
+      .eq("id", workspaceId)
+      .single();
 
     if (!members) return { status: 404 };
 
@@ -376,16 +324,16 @@ export const getWorkspaceMembers = async (workspaceId: string) => {
 
 export const deleteFolder = async (folderId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const folder = await client.folder.delete({
-      where: {
-        id: folderId,
-      },
-    });
+    const { error } = await supabase
+      .from("Folder")
+      .delete()
+      .eq("id", folderId);
 
-    if (folder) {
+    if (!error) {
       return { status: 200, data: "Folder deleted" };
     }
 
@@ -397,18 +345,17 @@ export const deleteFolder = async (folderId: string) => {
 
 export const renameWorkspace = async (workspaceId: string, name: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const workspace = await client.workspace.update({
-      where: {
-        id: workspaceId,
-        user: { clerkId: user.id },
-      },
-      data: { name },
-    });
+    const { error } = await supabase
+      .from("Workspace")
+      .update({ name })
+      .eq("id", workspaceId)
+      .eq("userId", user.id);
 
-    if (workspace) {
+    if (!error) {
       return { status: 200, data: "Workspace renamed" };
     }
 
@@ -420,17 +367,17 @@ export const renameWorkspace = async (workspaceId: string, name: string) => {
 
 export const deleteWorkspace = async (workspaceId: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const workspace = await client.workspace.delete({
-      where: {
-        id: workspaceId,
-        user: { clerkId: user.id },
-      },
-    });
+    const { error } = await supabase
+      .from("Workspace")
+      .delete()
+      .eq("id", workspaceId)
+      .eq("userId", user.id);
 
-    if (workspace) {
+    if (!error) {
       return { status: 200, data: "Workspace deleted" };
     }
 
@@ -443,19 +390,17 @@ export const deleteWorkspace = async (workspaceId: string) => {
 export const updateFolderLocation = async (
   folderId: string,
   workspaceId: string,
-  parentFolderId?: string | null
 ) => {
   try {
-    const folder = await client.folder.update({
-      where: { id: folderId },
-      data: {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("Folder")
+      .update({
         workspaceId,
-        // Assuming schema has parentFolderId for nesting, if not we ignore it
-        ...(parentFolderId !== undefined && { parentFolderId }),
-      },
-    });
+      })
+      .eq("id", folderId);
 
-    if (folder) return { status: 200, data: "Folder moved successfully" };
+    if (!error) return { status: 200, data: "Folder moved successfully" };
 
     return { status: 404, data: "Folder not found" };
   } catch (error) {
@@ -467,7 +412,6 @@ export const getHowToPost = async () => {
   try {
     const posts = await axios.get(process.env.CLOUD_WAYS_POSTS as string);
     if (posts.data) {
-      // Return the first post as showcased in the transcript
       return {
         status: 200,
         data: {
@@ -488,16 +432,55 @@ export const editVideoInfo = async (
   description: string
 ) => {
   try {
-    const video = await client.video.update({
-      where: { id: videoId },
-      data: {
-        title,
-        description,
-      },
-    });
-    if (video) return { status: 200, data: "Video details updated" };
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("Video")
+      .update({ title, description })
+      .eq("id", videoId);
+
+    if (!error) return { status: 200, data: "Video details updated" };
     return { status: 404, data: "Video not found" };
   } catch (error) {
     return { status: 400, data: "Failed to update video" };
+  }
+};
+
+export const deleteVideo = async (videoId: string) => {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
+
+    const { data: video } = await supabase
+      .from("Video")
+      .select("source")
+      .eq("id", videoId)
+      .eq("userId", user.id)
+      .single();
+
+    if (!video) return { status: 404, data: "Video not found or unauthorized" };
+
+    const key = video.source.split("/").pop();
+    if (!key) throw new Error("Could not parse storage key");
+
+    const { error: dbError } = await supabase
+      .from("Video")
+      .delete()
+      .eq("id", videoId);
+
+    if (dbError) throw dbError;
+
+    const { error: storageError } = await supabase.storage
+      .from("vintyl-videos")
+      .remove([key]);
+
+    if (storageError) {
+      console.error("Supabase Storage Delete Error:", storageError);
+    }
+
+    return { status: 200, data: "Video removed permanently" };
+  } catch (error) {
+    console.error("Delete Error:", error);
+    return { status: 500, data: "Internal error" };
   }
 };

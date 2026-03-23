@@ -1,19 +1,28 @@
 "use server";
 
-import { client } from "@/lib/prisma";
-import { currentUser } from "@clerk/nextjs/server";
+import { createClient } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 
 export const getSubscription = async () => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401, data: null };
 
-    const subscription = await client.subscription.findFirst({
-      where: {
-        user: { clerkId: user.id },
-      },
-    });
+    const { data: dbUser } = await supabaseAdmin
+      .from("User")
+      .select("id")
+      .eq("supabaseId", user.id)
+      .single();
+
+    if (!dbUser) return { status: 404, data: null };
+
+    const { data: subscription } = await supabaseAdmin
+      .from("Subscription")
+      .select("*")
+      .eq("userId", dbUser.id)
+      .single();
 
     return { status: 200, data: subscription };
   } catch {
@@ -23,23 +32,24 @@ export const getSubscription = async () => {
 
 export const createCheckoutSession = async (plan: "PRO" | "TEAM") => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401, data: null };
 
-    const dbUser = await client.user.findUnique({
-      where: { clerkId: user.id },
-      include: { subscription: true },
-    });
+    const { data: dbUser } = await supabaseAdmin
+      .from("User")
+      .select("id, email, Subscription(plan, customerId)")
+      .eq("supabaseId", user.id)
+      .single();
 
     if (!dbUser) return { status: 404, data: null };
 
+    const subscription = (dbUser as any).Subscription;
+
     // If already subscribed to the same plan, return portal link
-    if (
-      dbUser.subscription?.plan === plan &&
-      dbUser.subscription.customerId
-    ) {
+    if (subscription?.plan === plan && subscription?.customerId) {
       const portalSession = await stripe.billingPortal.sessions.create({
-        customer: dbUser.subscription.customerId,
+        customer: subscription.customerId,
         return_url: `${process.env.NEXT_PUBLIC_HOST_URL}/dashboard`,
       });
       return { status: 200, data: portalSession.url };
@@ -61,10 +71,10 @@ export const createCheckoutSession = async (plan: "PRO" | "TEAM") => {
       ],
       success_url: `${process.env.NEXT_PUBLIC_HOST_URL}/payment?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.NEXT_PUBLIC_HOST_URL}/payment?cancelled=true`,
-      customer_email: user.emailAddresses[0]?.emailAddress,
+      customer_email: user.email,
       metadata: {
-        clerkId: user.id,
-        userId: dbUser.id,
+        supabaseId: user.id,
+        userId: (dbUser as any).id,
         plan: plan,
       },
     });

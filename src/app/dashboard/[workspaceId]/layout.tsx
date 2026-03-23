@@ -28,8 +28,8 @@ export default async function WorkspaceLayout({
   const { workspaceId } = await params;
   const auth = await onAuthenticatedUser();
 
-  if (!auth.user?.workspace) return redirect("/auth/sign-in");
-  if (!auth.user.workspace.length) return redirect("/auth/sign-in");
+  if (auth.status !== 200 || !auth.user?.workspace) return redirect("/auth");
+  if (!auth.user.workspace.length) return redirect("/auth");
 
   const hasAccess = await verifyAccessToWorkspace(workspaceId);
 

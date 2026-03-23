@@ -1,12 +1,15 @@
-# 🎬 Vintyl — AI-Powered Video Sharing Platform
+# 🪐 Vintyl — AI-Powered Video Sharing Platform
 
-Vintyl is a high-performance async video communication platform built with Next.js, Express, and Electron. It enables seamless screen recording, real-time streaming, AI-powered transcription & summarization, and collaborative video sharing for teams.
+Vintyl is a high-performance async video communication platform, now powered entirely by **Supabase** for Auth, Database, and Storage.
+
+- **Live Web**: [https://vintyl.venusapp.in/](https://vintyl.venusapp.in/)
+- **Webhook**: [https://vintyl.venusapp.in/api/payment/webhook](https://vintyl.venusapp.in/api/payment/webhook)
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![Electron](https://img.shields.io/badge/Desktop-Electron-47848F?logo=electron)
 ![Gemini](https://img.shields.io/badge/AI-Gemini_1.5_Flash-4285F4?logo=google)
-![Supabase](https://img.shields.io/badge/Storage-Supabase-3ECF8E?logo=supabase)
+![Supabase](https://img.shields.io/badge/Backend-Supabase-3ECF8E?logo=supabase)
 ![Stripe](https://img.shields.io/badge/Payments-Stripe-635BFF?logo=stripe)
 
 ---
@@ -14,47 +17,38 @@ Vintyl is a high-performance async video communication platform built with Next.
 ## ✨ Features
 
 ### Core Platform
-- **Screen Recording** — Desktop app captures screen/audio and streams to the cloud in real-time
-- **Video Library** — Organize videos into workspaces and folders
-- **Video Preview** — Rich preview page with view tracking, sharing, and comments
-- **Workspace Collaboration** — Invite team members, manage permissions
+- **Screen Recording** — Captures screen/audio and streams to the cloud in real-time.
+- **Video Library** — Organize videos into workspaces and folders.
+- **Video Preview** — Rich preview page with view tracking, sharing, and comments.
+- **Workspace Collaboration** — Invite team members and manage permissions.
 
 ### AI-Powered
-- **Auto Transcription** — Google Gemini 1.5 Flash converts speech to text
-- **AI Summarization** — Generates titles and summaries for every video
-- **AI Trial Hook** — Free-tier users get one AI usage before upgrading
-- **VoiceFlow AI Agent** — Interactive chatbot for video-contextual Q&A
+- **Auto Transcription** — Google Gemini 1.5 Flash converts speech to text.
+- **AI Summarization** — Generates titles and summaries for every video automatically.
+- **Interactive Insights** — AI-generated content helps users understand recordings at a glance.
 
-### Video Editing (Beta)
-- **Cut & Trim** — Range sliders to set start/end points
-- **Canvas Size** — Switch between 16:9, 9:16, 1:1, and 4:3 aspect ratios
-- **Background Music** — Pick from preset tracks with volume control
-- **Export** — Download edited clips as WebM
+### Desktop App Linking
+- **Unified Identity** — Link your desktop recorder to your web account using your unique **User ID**.
+- **Real-time Streaming** — Desktop recordings are processed by the Express server and stored in Supabase.
 
 ### Monetization
-- **3-Tier Pricing** — Free, Pro ($29/mo), and Team ($99/mo) plans
-- **Stripe Integration** — Checkout sessions, billing portal, and webhook handling
-- **Feature Comparison** — Beautiful pricing page with feature comparison grid
-
-### CMS Integration
-- **Cloudways/Wordpress** — "How To" guides fetched from a headless CMS
+- **3-Tier Pricing** — Free, Pro, and Team plans.
+- **Stripe Integration** — Secure checkout sessions and billing portal.
 
 ---
 
 ## 🏗 Architecture
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│   Electron App  │────▶│   Express Server  │────▶│ Supabase Storage│
-│ (Desktop Recorder)│   │  (Socket.IO +     │     │  (vintyl-videos) │
-└─────────────────┘     │   Gemini AI)      │     └─────────────────┘
-                        └──────────────────┘
-                              ▲
-                              │
-                        ┌──────────────────┐     ┌─────────────────┐
-                        │   Next.js App     │────▶│  Neon Postgres  │
-                        │ (Web Dashboard)   │     │   (Prisma ORM)  │
-                        └──────────────────┘     └─────────────────┘
+```mermaid
+graph TD
+    A[Electron Desktop App] -->|Socket.IO| B[Express Processing Server]
+    B -->|Upload| C[Supabase Storage]
+    B -->|AI Request| D[Gemini 1.5 Flash]
+    D -->|JSON Metadata| B
+    B -->|Update DB| E[Supabase / Postgres]
+    F[Next.js Dashboard] -->|Read| E
+    F -->|Playback| C
+    F -->|Auth| G[Supabase Auth]
 ```
 
 ---
@@ -69,60 +63,18 @@ npm install
 ```
 
 ### 2. Environment Configuration
-Create a `.env` file in the root directory and add your keys for Gemini, Supabase, Stripe, Clerk, and Neon. Use `.env.example` as a template.
+Create a `.env` file in the root directory. Use `.env.example` as a template.
+Key variables required:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `GEMINI_API_KEY`
+- `STRIPE_SECRET_KEY`
 
-### 3. Production Deployment
+### 3. Database Setup
+The database schema is managed directly in Supabase. Apply the `DBSchema.sql` to your Supabase SQL Editor to initialize the tables and the `handle_new_user` trigger.
 
-#### Web App (Next.js)
-Deploy the Next.js frontend to **Vercel** or any Node.js host. Ensure all `.env` variables are configured in your production dashboard.
-
-#### Processing Server (Express)
-The Express server can be deployed to **Render**, **Railway**, or a **VPS**.
-- Update `NEXT_PUBLIC_HOST_URL` in the frontend to point to your hosted Express URL.
-
-#### Desktop App (Electron)
-To package the desktop recorder for your users:
-1. Navigate to the `desktop` folder: `cd desktop`
-2. Install dependencies: `npm install`
-3. Package the app: `npm run build`
-4. Find your branded `.exe` in the `dist/` folder.
-
-> [!TIP]
-> **Branding**: The app is pre-configured with the Vintyl logo and product name. For production, upload the generated `.exe` to your storage (Supabase or S3) and update the "Download" link in the dashboard sidebar.
-
----
-
-## 🏗️ Architecture
-
-```mermaid
-graph TD
-    A[Electron Desktop App] -->|Socket.IO| B[Express Processing Server]
-    B -->|Upload| C[Supabase Storage]
-    B -->|AI Request| D[Gemini 2.5 Flash]
-    D -->|JSON Metadata| B
-    B -->|Update DB| E[Neon Postgres]
-    F[Next.js Dashboard] -->|Read| E
-    F -->|Playback| C
-```
-
-# App
-NEXT_PUBLIC_HOST_URL=http://localhost:3000
-NEXT_PUBLIC_VOICEFLOW_KEY=...
-```
-
-### 3. Supabase Storage Setup
-1. Go to your [Supabase Dashboard](https://supabase.com/dashboard)
-2. Navigate to **Storage** → **New Bucket**
-3. Name it `vintyl-videos` and make it **Public**
-4. Under **Policies**, add a policy allowing `INSERT`, `SELECT`, `UPDATE`, `DELETE` for all users (or authenticated users)
-
-### 4. Database Setup
-```bash
-npx prisma generate
-npx prisma db push
-```
-
-### 5. Run the Platform
+### 4. Run the Platform
 
 #### A. Web Frontend (Next.js)
 ```bash
@@ -133,7 +85,7 @@ npm run dev
 ```bash
 cd express-server
 npm install
-npm run dev
+node index.js
 ```
 
 #### C. Desktop Recorder (Electron)
@@ -149,15 +101,14 @@ npm start
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 16, React Query, Tailwind CSS, ShadCN UI, Framer Motion |
+| **Frontend** | Next.js 16, React Query, Tailwind CSS, ShadCN UI |
 | **Backend** | Express.js, Socket.IO |
-| **Database** | PostgreSQL (Neon) + Prisma ORM |
-| **Desktop** | Electron (WebRTC Media Capture) |
-| **AI** | Google Gemini 1.5 Flash (Transcription & Summarization) |
-| **Storage** | Supabase Storage |
-| **Auth** | Clerk |
-| **Payments** | Stripe (Checkout, Webhooks, Billing Portal) |
-| **AI Agent** | VoiceFlow |
+| **Auth** | Supabase Auth (Unified across Web & Desktop) |
+| **Database** | Supabase (Postgres) |
+| **Storage** | Supabase Storage (`vintyl-videos` bucket) |
+| **AI** | Google Gemini 1.5 Flash |
+| **Desktop** | Electron (Desktop Media Capture) |
+| **Payments** | Stripe |
 
 ---
 
@@ -166,16 +117,15 @@ npm start
 ```
 Vintyl/
 ├── src/
-│   ├── actions/        # Server actions (AI, payment, video, workspace)
+│   ├── actions/        # Server actions (Auth, AI, Video, Workspace)
 │   ├── app/            # Next.js app router pages
-│   ├── components/     # UI components (recording, videos, billing)
+│   ├── components/     # UI components (Global, Dash, Auth)
 │   ├── hooks/          # Custom React hooks
-│   ├── lib/            # Utilities (prisma, storage, stripe, voiceflow)
-│   └── generated/      # Prisma generated client
+│   └── lib/            # Utilities (Supabase, Stripe, Gemini)
 ├── express-server/     # Express + Socket.IO processing server
 ├── desktop/            # Electron desktop recorder
-├── prisma/             # Database schema & migrations
-└── public/             # Static assets
+├── public/             # Static assets
+└── DBSchema.sql        # Supabase SQL initialization script
 ```
 
 ---

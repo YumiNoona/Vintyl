@@ -2,8 +2,7 @@ import React from "react";
 import { getVideoDetails } from "@/actions/video";
 import { redirect } from "next/navigation";
 import VideoPreviewContent from "./_components/video-preview-content";
-import { currentUser } from "@clerk/nextjs/server";
-import { client } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function VideoPreviewPage({
   params,
@@ -18,19 +17,17 @@ export default async function VideoPreviewPage({
   }
 
   // Get current user for commenting
-  const clerkUser = await currentUser();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   let dbUser = null;
   
-  if (clerkUser) {
-    dbUser = await client.user.findUnique({
-      where: { clerkId: clerkUser.id },
-      select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        image: true,
-      }
-    });
+  if (user) {
+    const { data: userData } = await supabase
+      .from("User")
+      .select("id, firstName, lastName, image")
+      .eq("supabaseId", user.id)
+      .single();
+    dbUser = userData;
   }
 
   return <VideoPreviewContent video={video.data} currentUser={dbUser || undefined} />;

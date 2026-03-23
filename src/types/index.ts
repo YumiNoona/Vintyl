@@ -82,7 +82,7 @@ export type VideoProps = {
       firstName: string | null;
       lastName: string | null;
       image: string | null;
-      clerkId: string;
+      supabaseId: string;
       trial: {
         trial: boolean;
       } | null;

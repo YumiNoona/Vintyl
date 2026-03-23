@@ -8,7 +8,7 @@ export async function GET() {
       : "UNDEFINED",
     NODE_ENV: process.env.NODE_ENV,
     ALL_ENV_KEYS: Object.keys(process.env).filter(
-      (k) => k.includes("DATABASE") || k.includes("CLERK") || k.includes("STRIPE")
+      (k) => k.includes("DATABASE") || k.includes("SUPABASE") || k.includes("STRIPE")
     ),
   })
 }

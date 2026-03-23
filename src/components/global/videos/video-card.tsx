@@ -13,6 +13,9 @@ import {
 } from "@/components/ui/context-menu";
 import ShareModal from "../share-modal";
 import EditVideo from "./edit-video";
+import { useMutationData } from "@/hooks/useMutationData";
+import { deleteVideo } from "@/actions/workspace";
+import { toast } from "sonner";
 
 type VideoCardProps = {
   id: string;
@@ -57,6 +60,13 @@ export default function VideoCard({
       ? "Yesterday"
       : `${daysDiff} days ago`;
 
+  const { mutate: onDelete, isPending } = useMutationData(
+    ["delete-video"],
+    () => deleteVideo(id),
+    "user-videos",
+    () => toast.success("Video deleted permanently")
+  );
+
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("videoId", id);
     e.dataTransfer.effectAllowed = "move";
@@ -65,16 +75,18 @@ export default function VideoCard({
   return (
     <ContextMenu>
       <ContextMenuTrigger>
-        <Loader
-          state={processing}
-          className="flex justify-center items-center w-full min-h-[200px] border border-neutral-700 rounded-xl"
-        >
         <div 
           draggable
           onDragStart={handleDragStart}
           className="group overflow-hidden cursor-pointer bg-card/40 relative border-2 border-border flex flex-col rounded-2xl hover:scale-[1.02] hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 ease-out"
         >
-          <div className="absolute top-2 right-2 z-10 gap-x-3 hidden group-hover:flex">
+          {processing && (
+            <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-pulse">
+              <div className="w-10 h-10 rounded-full border-t-2 border-purple-500 animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-purple-500">Processing...</p>
+            </div>
+          )}
+          <div className="absolute top-2 right-2 z-30 gap-x-3 hidden group-hover:flex">
             <EditVideo
               videoId={id}
               title={title || ""}
@@ -127,7 +139,6 @@ export default function VideoCard({
         </div>
       </Link>
     </div>
-  </Loader>
       </ContextMenuTrigger>
       <ContextMenuContent className="w-56 bg-popover border-border backdrop-blur-2xl shadow-2xl rounded-2xl p-2 focus:outline-none animate-in fade-in zoom-in-95 duration-200">
         <ContextMenuItem className="cursor-pointer hover:bg-secondary p-2.5 text-sm font-medium text-foreground rounded-xl transition-colors">
@@ -153,8 +164,12 @@ export default function VideoCard({
           Download
         </ContextMenuItem>
         <div className="h-px bg-border/50 my-1.5 mx-1" />
-        <ContextMenuItem className="cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 p-2.5 text-sm font-bold rounded-xl transition-colors">
-          Delete
+        <ContextMenuItem 
+          className="cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 p-2.5 text-sm font-bold rounded-xl transition-colors"
+          onClick={() => onDelete({})}
+          disabled={isPending}
+        >
+          {isPending ? "Deleting..." : "Delete"}
         </ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>

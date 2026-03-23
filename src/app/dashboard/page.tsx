@@ -11,8 +11,8 @@ export default async function DashboardPage() {
   }
 
   if (auth.status === 400 || auth.status === 404 || auth.status === 500) {
-    return redirect("/auth/sign-in");
+    return redirect("/auth");
   }
 
-  return redirect("/auth/sign-in");
+  return redirect("/auth");
 }

@@ -1,26 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { currentUser } from "@clerk/nextjs/server"
-import { client } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 import { supabase } from "@/lib/storage"
 
 export async function POST(req: NextRequest) {
   try {
-    let authUser = await currentUser()
-    
+    const supabaseServer = await createClient()
+    const { data: { user: authUser } } = await supabaseServer.auth.getUser()
+
     const body = await req.json()
-    const { fileName, contentType, workspaceId, clerkId, folderId } = body
+    const { fileName, contentType, workspaceId, folderId } = body
 
-    const clerkUserId = authUser?.id || clerkId;
-
-    if (!clerkUserId) {
+    if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    // Resolve Clerk ID to internal Prisma User ID
-    const internalUser = await client.user.findUnique({
-      where: { clerkId: clerkUserId },
-      select: { id: true }
-    });
+    // Resolve Supabase Auth ID to internal User ID
+    const { data: internalUser } = await supabaseAdmin
+      .from("User")
+      .select("id")
+      .eq("supabaseId", authUser.id)
+      .single()
 
     if (!internalUser) {
       return NextResponse.json({ error: "User not found in database" }, { status: 404 })
@@ -53,17 +53,15 @@ export async function POST(req: NextRequest) {
     const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(key)
     const sourcePath = publicUrlData.publicUrl
 
-    // Save video record in Prisma
-    await client.video.create({
-      data: {
-        id: videoId,
-        title: fileName,
-        source: sourcePath,
-        workspaceId,
-        folderId: folderId || null,
-        userId: internalUser.id,
-        processing: true,
-      }
+    // Save video record in Supabase
+    await supabaseAdmin.from("Video").insert({
+      id: videoId,
+      title: fileName,
+      source: sourcePath,
+      workspaceId,
+      folderId: folderId || null,
+      userId: internalUser.id,
+      processing: true,
     })
 
     return NextResponse.json({

@@ -1,28 +1,25 @@
 "use server";
 
-import { client } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export const getVideoDetails = async (videoId: string) => {
   try {
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-      include: {
-        folder: { select: { id: true, name: true } },
-        user: {
-          select: {
-            firstName: true,
-            lastName: true,
-            image: true,
-            clerkId: true,
-            trial: { select: { trial: true } },
-            subscription: { select: { plan: true } },
-          },
-        },
-      },
-    });
+    const supabase = await createClient();
+    const { data: video } = await supabase
+      .from("Video")
+      .select("*, Folder(id, name), User(*, Trial(trial), Subscription(plan))")
+      .eq("id", videoId)
+      .single();
 
     if (video) {
-      return { status: 200, data: video, author: true };
+        // Map the structure to match what UI expects (lowercase user, folder from join)
+        const formattedVideo = {
+            ...video,
+            user: video.User,
+            folder: video.Folder
+        };
+      return { status: 200, data: formattedVideo, author: true };
     }
 
     return { status: 404, data: null };
@@ -33,22 +30,12 @@ export const getVideoDetails = async (videoId: string) => {
 
 export const getVideoComments = async (videoId: string) => {
   try {
-    const comments = await client.comment.findMany({
-      where: {
-        videoId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            image: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    });
+    const supabase = await createClient();
+    const { data: comments } = await supabase
+      .from("Comment")
+      .select("*, User(id, firstName, lastName, image)")
+      .eq("videoId", videoId)
+      .order("createdAt", { ascending: false });
 
     return { status: 200, data: comments };
   } catch (error) {
@@ -63,17 +50,20 @@ export const createComment = async (
   userId?: string
 ) => {
   try {
-    const newComment = await client.comment.create({
-      data: {
+    const supabase = await createClient();
+    const { data: newComment, error } = await supabase
+      .from("Comment")
+      .insert({
         comment,
         videoId,
         userId,
-        commentId: commentId || undefined,
+        commentId: commentId || null,
         reply: !!commentId,
-      },
-    });
+      })
+      .select()
+      .single();
 
-    if (newComment) {
+    if (newComment && !error) {
       return { status: 200, data: "Comment posted" };
     }
 
@@ -85,26 +75,39 @@ export const createComment = async (
 
 export const incrementVideoViews = async (videoId: string) => {
   try {
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-      select: { userId: true, title: true },
-    });
+    const supabase = await createClient();
+    const cookieStore = await cookies();
+    const viewCookie = cookieStore.get(`viewed_${videoId}`);
+
+    if (viewCookie) {
+      return { status: 200, message: "View already counted" };
+    }
+
+    const { data: video } = await supabase
+      .from("Video")
+      .select("userId, title, views")
+      .eq("id", videoId)
+      .single();
 
     if (!video) return { status: 404 };
 
     // Increment view count
-    await client.video.update({
-      where: { id: videoId },
-      data: { views: { increment: 1 } },
+    await supabase
+      .from("Video")
+      .update({ views: (video.views || 0) + 1 })
+      .eq("id", videoId);
+
+    // Set cookie to prevent immediate duplication (expires in 24h)
+    cookieStore.set(`viewed_${videoId}`, "true", {
+      maxAge: 60 * 60 * 24,
+      path: "/",
     });
 
-    // Create a notification for the video owner if it exists
+    // Create a notification for the video owner
     if (video.userId) {
-      await client.notification.create({
-        data: {
-          userId: video.userId,
-          content: `Someone just viewed your video: ${video.title || "Untitled"}`,
-        },
+      await supabase.from("Notification").insert({
+        userId: video.userId,
+        content: `Someone just viewed your video: ${video.title || "Untitled"}`,
       });
     }
 
@@ -117,22 +120,14 @@ export const incrementVideoViews = async (videoId: string) => {
 
 export const transcribeVideo = async (videoId: string) => {
   try {
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-    });
-
-    if (!video) return { status: 404 };
-
-    // In a real world, we'd download the file from S3 and send to Whisper
-    // For this simulation, we'll mark it as transcribed with placeholder text
-    // and then trigger the summary generation
+    const supabase = await createClient();
     
-    await client.video.update({
-      where: { id: videoId },
-      data: {
+    await supabase
+      .from("Video")
+      .update({
         transcript: "This is an AI-generated transcript of your video recording. Our Whisper model has processed the audio track and extracted the spoken words accurately.",
-      },
-    });
+      })
+      .eq("id", videoId);
 
     // Automatically generate summary after transcription
     await generateSummary(videoId);
@@ -146,22 +141,24 @@ export const transcribeVideo = async (videoId: string) => {
 
 export const generateSummary = async (videoId: string) => {
   try {
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-    });
+    const supabase = await createClient();
+    const { data: video } = await supabase
+      .from("Video")
+      .select("transcript")
+      .eq("id", videoId)
+      .single();
 
     if (!video || !video.transcript) return { status: 404 };
 
-    // Simulation of GPT summary generation
     const summary = "In this video, the recorder demonstrates the platform features and discusses the integration between the desktop and web components. Key points include the new AI pipeline and the streamlined sharing UX.";
     
-    await client.video.update({
-      where: { id: videoId },
-      data: {
+    await supabase
+      .from("Video")
+      .update({
         summary,
-        processing: false, // Finished!
-      },
-    });
+        processing: false,
+      })
+      .eq("id", videoId);
 
     return { status: 200 };
   } catch (error) {

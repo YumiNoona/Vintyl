@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme";
 import { ReactQueryProvider } from "@/react-query";
 import { Toaster } from "sonner";
@@ -15,6 +14,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vintyl",
   description: "Share AI powered videos with your friends",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
@@ -23,24 +25,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en" suppressHydrationWarning>
-        <body
-          className={`${inter.className} bg-[#050505] text-white selection:bg-purple-500/30`}
+    <html lang="en" suppressHydrationWarning>
+      <body
+        className={`${inter.className} bg-[#050505] text-white selection:bg-purple-500/30`}
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          disableTransitionOnChange
         >
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="dark"
-            disableTransitionOnChange
-          >
-            <ReactQueryProvider>
-              {children}
-              <Toaster />
-              <VoiceflowAgent />
-            </ReactQueryProvider>
-          </ThemeProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+          <ReactQueryProvider>
+            {children}
+            <Toaster />
+            <VoiceflowAgent />
+          </ReactQueryProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

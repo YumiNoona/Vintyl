@@ -3,6 +3,7 @@ import {
   CreditCard,
   Users,
   Activity,
+  Settings,
 } from "lucide-react";
 
 export const MENU_ITEMS = [
@@ -25,5 +26,10 @@ export const MENU_ITEMS = [
     title: "Billing",
     href: "/billing",
     icon: CreditCard,
+  },
+  {
+    title: "Settings",
+    href: "/settings",
+    icon: Settings,
   },
 ] as const;

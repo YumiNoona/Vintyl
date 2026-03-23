@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { client } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   const checks: Record<string, string> = {
@@ -7,21 +7,23 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   }
 
-  // Database check
+  // Database check via Supabase
   try {
-    await client.$queryRaw`SELECT 1`
+    const supabase = await createClient()
+    const { error } = await supabase.from("User").select("id").limit(1)
+    if (error) throw error
     checks.database = "connected"
-  } catch {
+  } catch (err) {
+    console.error("Health Check DB Error:", err)
     checks.database = "disconnected"
     checks.status = "degraded"
   }
 
   // Environment variable check
-  checks.env_database = process.env.DATABASE_URL ? "set" : "missing"
-  checks.env_clerk = process.env.CLERK_SECRET_KEY ? "set" : "missing"
-  checks.env_openai = process.env.OPENAI_API_KEY ? "set" : "missing"
+  checks.env_supabase_url = process.env.NEXT_PUBLIC_SUPABASE_URL ? "set" : "missing"
+  checks.env_supabase_key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "set" : "missing"
+  checks.env_gemini = process.env.GEMINI_API_KEY ? "set" : "missing"
   checks.env_stripe = process.env.STRIPE_SECRET_KEY ? "set" : "missing"
-  checks.env_aws = process.env.AWS_ACCESS_KEY_ID ? "set" : "missing"
 
   const statusCode = checks.status === "ok" ? 200 : 503
   return NextResponse.json(checks, { status: statusCode })

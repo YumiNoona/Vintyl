@@ -1,4 +1,4 @@
-import { client } from "@/lib/prisma"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
 
 export async function POST(
@@ -10,26 +10,23 @@ export async function POST(
     const body = await req.json()
     const { filename } = body
 
-    const user = await client.user.findUnique({
-      where: { clerkId: id },
-      select: { id: true }
-    })
+    const { data: user } = await supabaseAdmin
+      .from("User")
+      .select("id")
+      .eq("supabaseId", id)
+      .single()
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    const video = await client.video.updateMany({
-      where: {
-        source: filename,
-        userId: user.id
-      },
-      data: {
-        processing: false,
-      }
-    })
+    const { error } = await supabaseAdmin
+      .from("Video")
+      .update({ processing: false })
+      .eq("source", filename)
+      .eq("userId", user.id)
 
-    if (video) {
+    if (!error) {
       return NextResponse.json({ status: 200 })
     }
 

@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { client } from "@/lib/prisma";
+import { supabaseAdmin } from "@/lib/supabase/admin";
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 /**
  * Transcribe video audio using Google Gemini 1.5 Flash
@@ -11,12 +11,13 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
  */
 export const transcribeVideo = async (videoId: string) => {
   try {
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-      select: { source: true, transcript: true },
-    });
+    const { data: video, error: fetchError } = await supabaseAdmin
+      .from("Video")
+      .select("source, transcript")
+      .eq("id", videoId)
+      .single();
 
-    if (!video) return { status: 404, data: "Video not found" };
+    if (fetchError || !video) return { status: 404, data: "Video not found" };
     if (video.transcript) return { status: 200, data: video.transcript };
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -44,10 +45,12 @@ export const transcribeVideo = async (videoId: string) => {
     if (!transcription) return { status: 500, data: "Transcription generated no text" };
 
     // Save transcript to DB
-    await client.video.update({
-      where: { id: videoId },
-      data: { transcript: transcription },
-    });
+    const { error: updateError } = await supabaseAdmin
+      .from("Video")
+      .update({ transcript: transcription })
+      .eq("id", videoId);
+
+    if (updateError) throw updateError;
 
     return { status: 200, data: transcription };
   } catch (error) {
@@ -66,12 +69,13 @@ export const generateVideoSummary = async (videoId: string) => {
       return { status: 400, data: "Gemini API Key is missing. Please add your key to the .env file." };
     }
 
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-      select: { transcript: true, summary: true, title: true },
-    });
+    const { data: video, error: fetchError } = await supabaseAdmin
+      .from("Video")
+      .select("transcript, summary, title")
+      .eq("id", videoId)
+      .single();
 
-    if (!video) return { status: 404, data: null };
+    if (fetchError || !video) return { status: 404, data: null };
     if (!video.transcript)
       return { status: 400, data: "No transcript available. Transcribe first." };
 
@@ -93,13 +97,15 @@ Respond in JSON format: { "title": "...", "summary": "..." }`;
     const resultJson = JSON.parse(cleanedJson);
 
     // Save to DB
-    await client.video.update({
-      where: { id: videoId },
-      data: {
+    const { error: updateError } = await supabaseAdmin
+      .from("Video")
+      .update({
         summary: resultJson.summary || null,
         title: resultJson.title || video.title,
-      },
-    });
+      })
+      .eq("id", videoId);
+
+    if (updateError) throw updateError;
 
     return { status: 200, data: resultJson };
   } catch (error) {
@@ -114,22 +120,16 @@ Respond in JSON format: { "title": "...", "summary": "..." }`;
 export const processVideoWithAI = async (videoId: string) => {
   try {
     // Step 0: Check User Subscription & Trial Status
-    const video = await client.video.findUnique({
-      where: { id: videoId },
-      include: {
-        user: {
-          include: {
-            subscription: true,
-            trial: true,
-          },
-        },
-      },
-    });
+    const { data: video, error: fetchError } = await supabaseAdmin
+      .from("Video")
+      .select("*, User(*, Subscription(plan), Trial(trial))")
+      .eq("id", videoId)
+      .single();
 
-    if (!video || !video.user) return { status: 404, data: "User or Video not found" };
+    if (fetchError || !video || !video.User) return { status: 404, data: "User or Video not found" };
 
-    const isPro = video.user.subscription?.plan === "PRO";
-    const hasUsedTrial = video.user.trial?.trial === true;
+    const isPro = (video.User as any).Subscription?.plan === "PRO";
+    const hasUsedTrial = (video.User as any).Trial?.[0]?.trial === true; // Assuming join returns array or nested obj
 
     if (!isPro && hasUsedTrial) {
       return { 
@@ -151,18 +151,16 @@ export const processVideoWithAI = async (videoId: string) => {
     }
 
     // Mark video as processed
-    await client.video.update({
-      where: { id: videoId },
-      data: { processing: false },
-    });
+    await supabaseAdmin
+      .from("Video")
+      .update({ processing: false })
+      .eq("id", videoId);
 
     // Step 3: Update Trial status for FREE users
     if (!isPro) {
-      await client.trial.upsert({
-        where: { userId: video.user.id },
-        update: { trial: true },
-        create: { userId: video.user.id, trial: true },
-      });
+      await supabaseAdmin
+        .from("Trial")
+        .upsert({ userId: video.userId, trial: true }, { onConflict: "userId" });
     }
 
     return {
@@ -177,3 +175,4 @@ export const processVideoWithAI = async (videoId: string) => {
     return { status: 500, data: "Processing failed" };
   }
 };
+

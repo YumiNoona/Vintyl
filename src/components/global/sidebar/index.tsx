@@ -135,19 +135,29 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
       </div>
 
       <DropdownMenu>
-        <DropdownMenuTrigger className="w-full bg-secondary/50 border border-border hover:bg-secondary transition-all h-auto p-3 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-xl outline-none shadow-sm group">
-          <div className="flex items-center justify-between w-full">
-            <div className="flex items-center gap-3 truncate">
-              <div className="w-7 h-7 rounded-lg bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-purple-500/20">
-                {currentWorkspace?.name.charAt(0).toUpperCase()}
+        <DropdownMenuTrigger
+          render={
+            <button className="w-full bg-secondary/50 border border-border hover:bg-secondary transition-all h-auto p-3 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-xl outline-none shadow-sm group">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-3 truncate">
+                  <div className="w-7 h-7 rounded-lg bg-purple-600/10 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold text-xs shrink-0 ring-1 ring-purple-500/20">
+                    {currentWorkspace?.name.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col items-start truncate">
+                    <p className="text-sm font-bold text-foreground truncate">
+                      {currentWorkspace?.name}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground truncate uppercase tracking-tighter font-black">
+                      {currentWorkspace?.type} Workspace
+                    </p>
+                  </div>
+                </div>
+                <ChevronsUpDown size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
               </div>
-              <span className="font-bold text-sm truncate text-foreground">
-                {currentWorkspace?.name || "Select a workspace"}
-              </span>
-            </div>
-            <ChevronsUpDown size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-          </div>
-        </DropdownMenuTrigger>
+            </button>
+          }
+        />
+      {mounted && (
         <DropdownMenuContent className="w-[230px] bg-popover border-border backdrop-blur-2xl p-2 relative z-[100] ml-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
           <DropdownMenuGroup>
             <DropdownMenuLabel className="text-[10px] text-muted-foreground px-3 py-2 uppercase font-black tracking-widest opacity-70">Your Workspaces</DropdownMenuLabel>
@@ -201,6 +211,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
+      )}
       </DropdownMenu>
 
       {/* Modals */}

@@ -13,7 +13,7 @@ type RecordingContextType = {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
   setRecordedVideo: (url: string | null) => void;
-  uploadVideo: (workspaceId: string, clerkId: string, folderId?: string) => Promise<void>;
+  uploadVideo: (workspaceId: string, userId: string, folderId?: string) => Promise<void>;
 };
 
 const RecordingContext = createContext<RecordingContextType | undefined>(undefined);
@@ -67,7 +67,7 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
     recorderRef.current?.stop();
   };
 
-  const uploadVideo = async (workspaceId: string, clerkId: string, folderId?: string) => {
+  const uploadVideo = async (workspaceId: string, userId: string, folderId?: string) => {
     if (!recordedVideo) return;
     setIsUploading(true);
 
@@ -84,7 +84,7 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
           fileName,
           contentType: videoBlob.type,
           workspaceId,
-          clerkId,
+          userId,
           folderId,
         })
       });

@@ -1,24 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useRecording } from "@/context/RecordingContext";
 import RecordingOverlay from "./recording-overlay";
 import RecordPreview from "@/components/recording/record-preview";
-import { useUser } from "@clerk/nextjs";
+import { createClient } from "@/lib/supabase/client";
 import { useParams } from "next/navigation";
 
 export default function GlobalRecordingEffects() {
   const { 
-    isRecording, 
     recordedVideo, 
     isUploading, 
     videoId, 
     uploadVideo, 
     setRecordedVideo 
   } = useRecording();
-  const { user } = useUser();
+  const [userId, setUserId] = useState<string | null>(null);
   const params = useParams();
   const workspaceId = params.workspaceId as string;
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUserId(data.user?.id ?? null);
+    });
+  }, []);
 
   return (
     <>
@@ -27,7 +33,7 @@ export default function GlobalRecordingEffects() {
       {recordedVideo && (
         <RecordPreview 
           video={recordedVideo}
-          onUpload={(folderId) => user && uploadVideo(workspaceId, user.id, folderId)}
+          onUpload={(folderId) => userId && uploadVideo(workspaceId, userId, folderId)}
           onDiscard={() => {
             setRecordedVideo(null);
           }}

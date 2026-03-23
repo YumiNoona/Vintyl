@@ -41,11 +41,11 @@ io.on("connection", (socket) => {
   console.log("🔌 Connected:", socket.id);
 
   socket.on("start-recording", async (data) => {
-    const { clerkId } = data;
-    console.log(`⏺️ User ${clerkId} started recording`);
+    const { userId } = data;
+    console.log(`⏺️ User ${userId} started recording`);
     
     try {
-      const res = await axios.get(`${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/processing`);
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${userId}/processing`);
       socket.emit("user-info", { plan: res.data.plan || "FREE" });
     } catch (err) {
       socket.emit("user-info", { plan: "FREE" });
@@ -60,13 +60,19 @@ io.on("connection", (socket) => {
   });
 
   socket.on("process-video", async (data) => {
-    const { filename, clerkId } = data;
-    console.log(`🔄 Processing ${filename} for user ${clerkId}`);
+    const { filename, userId } = data;
+    console.log(`🔄 Processing ${filename} for user ${userId}`);
 
     try {
       const chunks = recordedChunks[filename];
       if (!chunks) {
         return socket.emit("error", { message: "No chunks found for this file" });
+      }
+
+      // Security Check: Verify user exists/active via Next.js
+      const verifyRes = await axios.get(`${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${userId}/processing`);
+      if (verifyRes.status !== 200) {
+        return socket.emit("error", { message: "Unauthorized or invalid user session" });
       }
 
       const buffer = Buffer.concat(chunks);
@@ -81,7 +87,7 @@ io.on("connection", (socket) => {
 
       // 1. Initial Processing Call to Next.js
       const processingRes = await axios.post(
-        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/processing`,
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${userId}/processing`,
         { filename }
       );
 
@@ -137,7 +143,7 @@ io.on("connection", (socket) => {
       const publicUrl = publicUrlData.publicUrl;
 
       await axios.post(
-        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/transcribe`,
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${userId}/transcribe`,
         {
           filename,
           content: JSON.stringify({ title: aiData.title, summary: aiData.summary }),
@@ -148,7 +154,7 @@ io.on("connection", (socket) => {
 
       // 5. Complete Processing Call
       await axios.post(
-        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/complete`,
+        `${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${userId}/complete`,
         { filename }
       );
 

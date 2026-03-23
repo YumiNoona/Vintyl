@@ -1,11 +1,11 @@
 "use client";
 
-import React from "react";
-import { UserButton } from "@clerk/nextjs";
+import React, { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { useQueryData } from "@/hooks/useQueryData";
 import { getNotifications } from "@/actions/user";
-import { Bell, MonitorUp, Download, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { Bell, MonitorUp, Download, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/global/modal";
 import { useTheme } from "next-themes";
@@ -20,6 +20,41 @@ import {
 type DashboardNavbarProps = {
   workspaceId: string;
 };
+
+function SupabaseUserButton() {
+  const router = useRouter();
+  const [initial, setInitial] = useState("?");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      const email = data.user?.email || "";
+      setInitial(email.charAt(0).toUpperCase() || "U");
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/auth");
+  };
+
+  return (
+    <div className="relative group">
+      <button
+        onClick={handleSignOut}
+        className="w-8 h-8 rounded-full bg-purple-600 text-white text-sm font-bold flex items-center justify-center hover:bg-purple-700 transition-colors"
+        title="Sign out"
+      >
+        {initial}
+      </button>
+      <div className="absolute right-0 top-10 hidden group-hover:flex items-center gap-1.5 bg-popover border border-border rounded-lg px-3 py-2 text-xs text-muted-foreground whitespace-nowrap shadow-lg z-50">
+        <LogOut size={12} />
+        Sign out
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardNavbar({
   workspaceId,
@@ -147,7 +182,7 @@ export default function DashboardNavbar({
           </Button>
         )}
 
-        <UserButton />
+        <SupabaseUserButton />
       </div>
     </div>
   );

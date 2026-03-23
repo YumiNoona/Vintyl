@@ -1,70 +1,28 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
-import { client } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 
 export const onAuthenticatedUser = async () => {
   try {
-    console.log("🔐 AUTH START");
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    const user = await currentUser();
-    console.log("👤 CLERK USER:", user?.id, user?.emailAddresses?.[0]?.emailAddress);
+    if (!user) return { status: 403 };
 
-    if (!user) {
-      console.log("❌ No Clerk user found");
-      return { status: 403 };
-    }
-
-    const userExists = await client.user.findUnique({
-      where: { clerkId: user.id },
-      include: {
-        workspace: true,
-        subscription: {
-          select: { plan: true },
-        },
-      },
-    });
-
-    console.log("🔍 EXISTING USER:", userExists?.id || "NOT FOUND");
+    // Fetch from our public.User table
+    const { data: userExists } = await supabase
+      .from("User")
+      .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
+      .eq("supabaseId", user.id)
+      .single();
 
     if (userExists) {
       return { status: 200, user: userExists };
     }
 
-    console.log("🆕 Creating new user...");
-
-    const newUser = await client.user.create({
-      data: {
-        clerkId: user.id,
-        email: user.emailAddresses[0]?.emailAddress,
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        image: user.imageUrl,
-        studio: { create: {} },
-        subscription: { create: {} },
-        workspace: {
-          create: {
-            name: `${user.firstName || "My"}'s Workspace`,
-            type: "PERSONAL",
-          },
-        },
-      },
-      include: {
-        workspace: true,
-        subscription: {
-          select: { plan: true },
-        },
-      },
-    });
-
-    console.log("✅ NEW USER CREATED:", newUser.id);
-    console.log("📁 WORKSPACE:", newUser.workspace?.[0]?.id);
-
-    if (newUser) {
-      return { status: 201, user: newUser };
-    }
-
-    return { status: 400 };
+    // Fallback: If for some reason the trigger didn't create the user yet, 
+    // or we need to wait for it. In production, the trigger is very fast.
+    return { status: 404 };
   } catch (error) {
     console.error("❌ AUTH ERROR:", error);
     return { status: 500 };
@@ -73,21 +31,24 @@ export const onAuthenticatedUser = async () => {
 
 export const getNotifications = async () => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: [] };
 
-    const notifications = await client.user.findUnique({
-      where: { clerkId: user.id },
-      select: {
-        notifications: true,
-        _count: {
-          select: { notifications: true },
-        },
-      },
-    });
+    const { data: notifications } = await supabase
+      .from("User")
+      .select("Notification(*)")
+      .eq("supabaseId", user.id)
+      .single();
 
-    if (notifications && notifications.notifications.length > 0) {
-      return { status: 200, data: notifications };
+    if (notifications && (notifications as any).Notification.length > 0) {
+      return { 
+        status: 200, 
+        data: { 
+            notifications: (notifications as any).Notification,
+            _count: { notifications: (notifications as any).Notification.length }
+        } 
+      };
     }
 
     return { status: 404, data: [] };
@@ -98,29 +59,18 @@ export const getNotifications = async () => {
 
 export const searchUsers = async (query: string) => {
   try {
-    const user = await currentUser();
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: undefined };
 
-    const users = await client.user.findMany({
-      where: {
-        OR: [
-          { firstName: { contains: query } },
-          { lastName: { contains: query } },
-          { email: { contains: query } },
-        ],
-        NOT: [{ clerkId: user.id }],
-      },
-      select: {
-        id: true,
-        subscription: { select: { plan: true } },
-        firstName: true,
-        lastName: true,
-        image: true,
-        email: true,
-      },
-    });
+    const { data: users } = await supabase
+      .from("User")
+      .select("id, Subscription(plan), firstName, lastName, image, email")
+      .or(`firstName.ilike.%${query}%,lastName.ilike.%${query}%,email.ilike.%${query}%`)
+      .not("supabaseId", "eq", user.id);
 
     if (users && users.length > 0) {
+        // Map to match previous Prisma structure if needed
       return { status: 200, data: users };
     }
 

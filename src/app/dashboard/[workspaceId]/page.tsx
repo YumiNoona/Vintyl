@@ -1,5 +1,6 @@
-import React from "react";
+import AnalyticsChart from "@/components/global/analytics";
 import WorkspaceContent from "@/components/global/workspace-content";
+import React from "react";
 
 export default async function WorkspacePage({
   params,
@@ -9,8 +10,8 @@ export default async function WorkspacePage({
   const { workspaceId } = await params;
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-6">My Library</h1>
+    <div className="flex flex-col gap-y-6">
+      <AnalyticsChart />
       <WorkspaceContent workspaceId={workspaceId} />
     </div>
   );

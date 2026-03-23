@@ -1,23 +1,24 @@
 import { NextResponse } from "next/server"
-import { currentUser } from "@clerk/nextjs/server"
-import { client } from "@/lib/prisma"
+import { createClient } from "@/lib/supabase/server"
 
 export async function GET() {
   try {
-    const user = await currentUser()
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
-    const dbCheck = await client.$queryRaw`SELECT 1`
+    const { data: dbCheck, error: dbError } = await supabase.from("User").select("id").limit(1)
 
     return NextResponse.json({
-      clerkUser: user
+      supabaseUser: user
         ? {
             id: user.id,
-            email: user.emailAddresses?.[0]?.emailAddress,
+            email: user.email,
           }
         : null,
-      database: dbCheck ? "connected" : "unknown",
+      database: !dbError ? "connected" : "error",
       env: {
-        DATABASE_URL: process.env.DATABASE_URL ? "present" : "missing",
+        SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? "present" : "missing",
+        SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "present" : "missing",
       },
     })
   } catch (err: any) {
