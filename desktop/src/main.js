@@ -13,6 +13,8 @@ function createWindow() {
     transparent: false,
     resizable: true,
     alwaysOnTop: true,
+    title: "Vintyl Desktop",
+    icon: path.join(__dirname, "..", "build", "icon.png"),
     titleBarStyle: "hidden",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),

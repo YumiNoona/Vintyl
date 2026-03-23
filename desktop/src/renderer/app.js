@@ -19,6 +19,14 @@ const timerText = document.getElementById("timer-text");
 const minimizeBtn = document.getElementById("minimize-btn");
 const closeBtn = document.getElementById("close-btn");
 
+// Account UI
+const linkBtn = document.getElementById("link-btn");
+const linkContainer = document.getElementById("link-input-container");
+const clerkIdInput = document.getElementById("clerk-id-input");
+const saveClerkIdBtn = document.getElementById("save-clerk-id");
+const userDisplay = document.getElementById("user-display");
+const planBadge = document.getElementById("plan-badge");
+
 // ===== State =====
 let mediaRecorder = null;
 let stream = null;
@@ -26,6 +34,14 @@ let timerInterval = null;
 let seconds = 0;
 let socket = null;
 let currentFilename = "";
+let userPlan = "FREE";
+let currentUserClerkId = localStorage.getItem("vintyl_clerk_id") || "";
+
+// ===== Initialize =====
+if (currentUserClerkId) {
+  userDisplay.textContent = "Linked Account";
+  clerkIdInput.value = currentUserClerkId;
+}
 
 // ===== Socket.IO Connection =====
 function connectSocket() {
@@ -34,6 +50,11 @@ function connectSocket() {
   socket.on("connect", () => {
     statusDot.className = "status-dot connected";
     statusText.textContent = "Connected to server";
+    
+    // Fetch plan on connect if linked
+    if (currentUserClerkId) {
+      socket.emit("start-recording", { clerkId: currentUserClerkId });
+    }
   });
 
   socket.on("disconnect", () => {
@@ -41,9 +62,17 @@ function connectSocket() {
     statusText.textContent = "Disconnected";
   });
 
-  socket.on("connect_error", () => {
-    statusDot.className = "status-dot disconnected";
-    statusText.textContent = "Server offline";
+  socket.on("user-info", (data) => {
+    userPlan = data.plan;
+    console.log("Plan updated:", userPlan);
+    planBadge.textContent = userPlan;
+    planBadge.className = `badge ${userPlan.toLowerCase()}`;
+    
+    if (userPlan === "FREE") {
+      statusText.textContent = "Free Plan: 5m / 720p limit";
+    } else {
+      statusText.textContent = "Premium: 1080p enabled";
+    }
   });
 
   socket.on("processing-status", (data) => {
@@ -52,6 +81,26 @@ function connectSocket() {
 }
 
 connectSocket();
+
+// ===== Account Linking Logic =====
+linkBtn.addEventListener("click", () => {
+  linkContainer.style.display = linkContainer.style.display === "none" ? "block" : "none";
+});
+
+saveClerkIdBtn.addEventListener("click", () => {
+  const newId = clerkIdInput.value.trim();
+  if (newId) {
+    currentUserClerkId = newId;
+    localStorage.setItem("vintyl_clerk_id", newId);
+    userDisplay.textContent = "Linked Account";
+    linkContainer.style.display = "none";
+    
+    // Refetch plan
+    if (socket?.connected) {
+      socket.emit("start-recording", { clerkId: currentUserClerkId });
+    }
+  }
+});
 
 // ===== Window Controls =====
 minimizeBtn.addEventListener("click", () => {
@@ -96,6 +145,10 @@ sourceSelect.addEventListener("change", async () => {
   }
 
   try {
+    // Set parameters based on plan
+    const maxWidth = (userPlan === "FREE" || userPlan === "STANDARD") ? 1280 : 1920;
+    const maxHeight = (userPlan === "FREE" || userPlan === "STANDARD") ? 720 : 1080;
+
     // Get screen stream
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
@@ -103,8 +156,8 @@ sourceSelect.addEventListener("change", async () => {
         mandatory: {
           chromeMediaSource: "desktop",
           chromeMediaSourceId: sourceId,
-          maxWidth: 1920,
-          maxHeight: 1080,
+          maxWidth: maxWidth, 
+          maxHeight: maxHeight,
         },
       },
     });
@@ -115,31 +168,28 @@ sourceSelect.addEventListener("change", async () => {
     startBtn.disabled = false;
   } catch (err) {
     console.error("Error getting source:", err);
-    statusText.textContent = "Error: Could not capture source";
+    statusText.textContent = "Error: Capturing source failed";
   }
 });
 
 // ===== Recording =====
 async function startRecording() {
   if (!stream) return;
+  if (!currentUserClerkId) {
+    statusText.textContent = "⚠️ Please link account first";
+    return;
+  }
 
   currentFilename = `recording-${Date.now()}.webm`;
 
-  // Add audio from system if available
   try {
-    const audioStream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: false,
-    });
+    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     audioStream.getAudioTracks().forEach((track) => stream.addTrack(track));
   } catch {
-    console.log("No audio available");
+    console.log("Mic access denied or unavailable");
   }
 
-  // Create recorder
-  mediaRecorder = new MediaRecorder(stream, {
-    mimeType: "video/webm;codecs=vp9",
-  });
+  mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
 
   mediaRecorder.ondataavailable = (event) => {
     if (event.data.size > 0 && socket?.connected) {
@@ -148,7 +198,7 @@ async function startRecording() {
         socket.emit("video-chunks", {
           chunks: reader.result,
           filename: currentFilename,
-          clerkId: "user_3AsUYxoNXjNqqxQ8RYa01E8LfXh", // Hardcoded for now
+          clerkId: currentUserClerkId,
         });
       };
       reader.readAsArrayBuffer(event.data);
@@ -156,13 +206,13 @@ async function startRecording() {
   };
 
   mediaRecorder.onstop = async () => {
-    statusText.textContent = "Processing video...";
+    statusText.textContent = "Processing...";
     startBtn.disabled = true;
 
     if (socket?.connected) {
       socket.emit("process-video", {
         filename: currentFilename,
-        clerkId: "user_3AsUYxoNXjNqqxQ8RYa01E8LfXh",
+        clerkId: currentUserClerkId,
       });
     }
 
@@ -177,17 +227,13 @@ async function startRecording() {
     });
   };
 
-  // Start recording (chunk every 1 second)
   mediaRecorder.start(1000);
 
-  // Notify server
+  // Notify server to verify state
   if (socket?.connected) {
-    socket.emit("start-recording", {
-      clerkId: "desktop-user",
-    });
+    socket.emit("start-recording", { clerkId: currentUserClerkId });
   }
 
-  // UI updates
   startBtn.style.display = "none";
   stopBtn.style.display = "flex";
   stopBtn.disabled = false;
@@ -197,13 +243,19 @@ async function startRecording() {
   statusDot.className = "status-dot recording";
   statusText.textContent = "Recording...";
 
-  // Start timer
   seconds = 0;
   timerEl.style.display = "block";
   updateTimer();
   timerInterval = setInterval(() => {
     seconds++;
     updateTimer();
+    
+    // Usage limits
+    const timeLimit = userPlan === "FREE" ? 300 : (userPlan === "STANDARD" ? 900 : Infinity);
+    if (seconds >= timeLimit) {
+      stopRecording();
+      statusText.textContent = "Plan limit reached";
+    }
   }, 1000);
 }
 
@@ -211,7 +263,6 @@ function stopRecording() {
   if (mediaRecorder && mediaRecorder.state === "recording") {
     mediaRecorder.stop();
   }
-
   clearInterval(timerInterval);
 }
 
@@ -221,23 +272,14 @@ function resetUI() {
   sourceSelect.disabled = false;
   refreshBtn.disabled = false;
   timerEl.style.display = "none";
-
-  statusDot.className = socket?.connected
-    ? "status-dot connected"
-    : "status-dot disconnected";
-  statusText.textContent = socket?.connected
-    ? "Recording saved!"
-    : "Disconnected";
+  statusText.textContent = socket?.connected ? "Ready" : "Disconnected";
 }
 
 function updateTimer() {
-  const mins = Math.floor(seconds / 60)
-    .toString()
-    .padStart(2, "0");
+  const mins = Math.floor(seconds / 60).toString().padStart(2, "0");
   const secs = (seconds % 60).toString().padStart(2, "0");
   timerText.textContent = `${mins}:${secs}`;
 }
 
-// ===== Button Events =====
 startBtn.addEventListener("click", startRecording);
 stopBtn.addEventListener("click", stopRecording);

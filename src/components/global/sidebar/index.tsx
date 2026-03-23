@@ -125,12 +125,13 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
       {/* Logo ... */}
       <div className="flex items-center gap-3 px-2 mt-2">
         <Image
-          src="/vintyl-logo.svg"
+          src="/vintyl-logo.png"
           alt="logo"
           width={40}
           height={40}
+          className="rounded-lg shadow-lg"
         />
-        <p className="text-2xl">Vintyl</p>
+        <p className="text-2xl font-black tracking-tighter">Vintyl</p>
       </div>
 
       <DropdownMenu>
@@ -326,8 +327,21 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
         </ul>
       </nav>
 
-      {/* User Profile will go here later via layout composition, adding spacing */}
-      <div className="h-6" />
+      <div className="mt-auto px-2 pb-4">
+        <a 
+          href="/download/vintyl-desktop.exe" 
+          download
+          className="flex items-center gap-3 p-3 rounded-xl bg-purple-600/10 text-purple-600 dark:bg-purple-500/20 dark:text-purple-400 border border-purple-500/20 hover:bg-purple-500/20 transition-all font-bold group shadow-sm"
+        >
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+             <Image src="/vintyl-logo.png" alt="icon" width={20} height={20} className="group-hover:scale-110 transition-transform" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs leading-none">Download</span>
+            <span className="text-[10px] opacity-70">Vintyl Desktop</span>
+          </div>
+        </a>
+      </div>
     </div>
   );
 }

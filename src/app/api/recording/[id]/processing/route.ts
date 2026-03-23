@@ -22,12 +22,30 @@ export async function POST(
         },
         subscription: {
           select: { plan: true }
-        }
+        },
+        _count: {
+          select: {
+            videos: {
+              where: {
+                createdAt: {
+                  gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                },
+              },
+            },
+          },
+        },
       }
     })
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    if (user.subscription?.plan === "FREE" && user._count.videos >= 25) {
+      return NextResponse.json(
+        { message: "Free tier limit reached (25 videos/mo)" },
+        { status: 403 }
+      )
     }
 
     const personalWorkspaceId = user.workspace[0]?.id

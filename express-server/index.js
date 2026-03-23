@@ -40,6 +40,18 @@ const recordedChunks = {}; // In-memory storage for chunks per filename
 io.on("connection", (socket) => {
   console.log("🔌 Connected:", socket.id);
 
+  socket.on("start-recording", async (data) => {
+    const { clerkId } = data;
+    console.log(`⏺️ User ${clerkId} started recording`);
+    
+    try {
+      const res = await axios.get(`${process.env.NEXT_PUBLIC_HOST_URL}/api/recording/${clerkId}/processing`);
+      socket.emit("user-info", { plan: res.data.plan || "FREE" });
+    } catch (err) {
+      socket.emit("user-info", { plan: "FREE" });
+    }
+  });
+
   socket.on("video-chunks", (data) => {
     const { chunks, filename } = data;
     if (!recordedChunks[filename]) recordedChunks[filename] = [];
@@ -91,25 +103,34 @@ io.on("connection", (socket) => {
       }
       console.log("✅ Uploaded to Supabase");
 
-      // 3. AI Processing (Gemini 1.5 Flash)
-      console.log("🤖 Running Gemini AI...");
-      const base64Data = fileBuffer.toString("base64");
+      // 3. Get Plan & AI Processing (Gemini 2.5 Flash)
+      const userPlan = processingRes.data.plan || "FREE";
+      console.log(`👤 User Plan: ${userPlan}`);
       
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            data: base64Data,
-            mimeType: "video/webm",
-          },
-        },
-        "Transcribe this video accurately. Then provide a concise title and a 2-sentence summary. Respond ONLY in valid JSON format: { \"transcript\": \"...\", \"title\": \"...\", \"summary\": \"...\" }",
-      ]);
+      let aiData = { transcript: "", title: "Untitled", summary: "" };
 
-      const aiResponseText = result.response.text();
-      const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
-      const aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : { transcript: "", title: "Untitled", summary: "" };
-      
-      console.log("📝 AI Enrichment Complete");
+      // Gate AI features: STANDARD and above get AI
+      if (userPlan !== "FREE") {
+        console.log("🤖 Running Gemini AI...");
+        const base64Data = fileBuffer.toString("base64");
+        
+        const result = await model.generateContent([
+          {
+            inlineData: {
+              data: base64Data,
+              mimeType: "video/webm",
+            },
+          },
+          "Transcribe this video accurately. Then provide a concise title and a 2-sentence summary. Respond ONLY in valid JSON format: { \"transcript\": \"...\", \"title\": \"...\", \"summary\": \"...\" }",
+        ]);
+
+        const aiResponseText = result.response.text();
+        const jsonMatch = aiResponseText.match(/\{[\s\S]*\}/);
+        aiData = jsonMatch ? JSON.parse(jsonMatch[0]) : { transcript: "AI transcription not available for this plan", title: "Untitled", summary: "Please upgrade to Standard or Pro for AI summaries." };
+        console.log("📝 AI Enrichment Complete");
+      } else {
+        console.log("⏭️ Skipping AI (Free Tier)");
+      }
 
       // 4. Update Next.js with Transcription/Summary & Public URL
       const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filename);

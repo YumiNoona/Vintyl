@@ -1,6 +1,8 @@
 import React from "react";
 import { getNotifications } from "@/actions/user";
-import { Activity, CheckCircle } from "lucide-react";
+import { inviteMembers, acceptInvite } from "@/actions/workspace";
+import { Activity, CheckCircle, UserPlus } from "lucide-react";
+import InviteAcceptButton from "./_components/invite-accept-button";
 
 export default async function ActivityPage() {
   const activities = await getNotifications();
@@ -26,6 +28,9 @@ export default async function ActivityPage() {
                   <p className="text-foreground text-sm font-bold leading-relaxed">
                     {activity.content}
                   </p>
+                  {activity.content.includes("invited") && (
+                    <InviteAcceptButton inviteId={activity.id} />
+                  )}
                   <p className="text-muted-foreground text-[10px] mt-2 font-black uppercase tracking-widest bg-secondary w-fit px-2 py-0.5 rounded">
                     {new Date(activity.createdAt).toLocaleDateString()}
                   </p>

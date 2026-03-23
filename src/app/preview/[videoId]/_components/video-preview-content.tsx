@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useEffect } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Eye, Calendar, Share2 } from "lucide-react";
+import { User, Eye, Calendar, Share2, Code } from "lucide-react";
 import { incrementVideoViews } from "@/actions/video";
 import AISummaryButton from "./ai-summary-button";
 import Comments from "./comments";
@@ -39,21 +39,42 @@ type VideoPreviewContentProps = {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ListRestart, StickyNote, Activity as ActivityIcon, Send, Loader2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { useSearchParams } from "next/navigation";
+import EmbedModal from "@/components/global/embed-modal";
 
 export default function VideoPreviewContent({
   video,
   currentUser,
 }: VideoPreviewContentProps) {
   const hasTrackedView = useRef(false);
+ 
+   useEffect(() => {
+     if (!hasTrackedView.current) {
+       incrementVideoViews(video.id);
+       hasTrackedView.current = true;
+     }
+   }, [video.id]);
 
-  const handlePlay = () => {
-    if (!hasTrackedView.current) {
-      incrementVideoViews(video.id);
-      hasTrackedView.current = true;
-    }
-  };
+  const handlePlay = () => {};
 
   const createdDate = new Date(video.createdAt);
+  const searchParams = useSearchParams();
+  const isEmbed = searchParams.get("embed") === "true";
+
+  if (isEmbed) {
+    return (
+      <div className="w-full h-full bg-black overflow-hidden flex items-center justify-center">
+        <video
+          preload="metadata"
+          controls
+          autoPlay
+          onPlay={handlePlay}
+          className="w-full h-full object-contain"
+          src={video.source}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white p-6 lg:p-10">
@@ -81,8 +102,17 @@ export default function VideoPreviewContent({
                 trigger={
                   <button className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-all shadow-lg shadow-purple-500/20 active:scale-95">
                     <Share2 size={16} />
-                    Share Recording
+                    Share
                   </button>
+                }
+              />
+              <EmbedModal
+                videoId={video.id}
+                trigger={
+                  <span className="flex items-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 px-4 py-2 rounded-xl text-sm font-medium transition-all border border-white/5 cursor-pointer active:scale-95">
+                    <Code size={16} />
+                    Embed
+                  </span>
                 }
               />
             </div>

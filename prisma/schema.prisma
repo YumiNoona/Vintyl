@@ -19,8 +19,10 @@ enum Type {
 
 enum Plan {
   FREE
+  STANDARD
   PRO
   TEAM
+  ENTERPRISE
 }
 
 model User {
@@ -98,6 +100,8 @@ model Video {
 
   summary    String?
   transcript String?
+  resolution String?  @default("720p")
+  duration   Int?     @default(0)
 
   folderId String?
   folder   Folder? @relation(fields: [folderId], references: [id])

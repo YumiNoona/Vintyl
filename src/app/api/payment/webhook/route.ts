@@ -22,10 +22,20 @@ export async function POST(req: NextRequest) {
   try {
     switch (event.type) {
       case "checkout.session.completed": {
-        const session = event.data.object;
+        const session = event.data.object as any;
         const clerkId = session.metadata?.clerkId;
         const customerId = session.customer as string;
-        const plan = (session.metadata?.plan as "PRO" | "TEAM") || "PRO";
+        
+        let plan: any = session.metadata?.plan;
+        
+        if (!plan) {
+           const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
+           const priceId = lineItems.data[0]?.price?.id;
+           if (priceId === process.env.STRIPE_STANDARD_PRICE_ID) plan = "STANDARD";
+           else if (priceId === process.env.STRIPE_PRO_PRICE_ID) plan = "PRO";
+           else if (priceId === process.env.STRIPE_TEAM_PRICE_ID) plan = "TEAM";
+           else if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) plan = "ENTERPRISE";
+        }
 
         if (clerkId) {
           await client.user.update({
@@ -35,11 +45,11 @@ export async function POST(req: NextRequest) {
                 upsert: {
                   create: {
                     customerId,
-                    plan: plan,
+                    plan: plan || "PRO",
                   },
                   update: {
                     customerId,
-                    plan: plan,
+                    plan: plan || "PRO",
                   },
                 },
               },
@@ -50,7 +60,7 @@ export async function POST(req: NextRequest) {
       }
 
       case "customer.subscription.deleted": {
-        const subscription = event.data.object;
+        const subscription = event.data.object as any;
         const customerId = subscription.customer as string;
 
         await client.subscription.updateMany({
@@ -68,13 +78,17 @@ export async function POST(req: NextRequest) {
           subscription.status === "trialing";
 
         const priceId = subscription.items.data[0].price.id;
-        let plan: "PRO" | "TEAM" | "FREE" = "FREE";
+        let plan: any = "FREE";
 
         if (isActive) {
-          if (priceId === process.env.STRIPE_TEAM_PRICE_ID) {
-            plan = "TEAM";
-          } else {
+          if (priceId === process.env.STRIPE_STANDARD_PRICE_ID) {
+            plan = "STANDARD";
+          } else if (priceId === process.env.STRIPE_PRO_PRICE_ID) {
             plan = "PRO";
+          } else if (priceId === process.env.STRIPE_TEAM_PRICE_ID) {
+            plan = "TEAM";
+          } else if (priceId === process.env.STRIPE_ENTERPRISE_PRICE_ID) {
+            plan = "ENTERPRISE";
           }
         }
 

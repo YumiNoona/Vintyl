@@ -69,34 +69,41 @@ npm install
 ```
 
 ### 2. Environment Configuration
-Create a `.env` file in the root directory:
-```env
-# Database (Neon Postgres)
-DATABASE_URL=...
+Create a `.env` file in the root directory and add your keys for Gemini, Supabase, Stripe, Clerk, and Neon. Use `.env.example` as a template.
 
-# Auth (Clerk)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
-CLERK_SECRET_KEY=...
-NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=/auth/callback
-NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=/auth/callback
+### 3. Production Deployment
 
-# AI (Google Gemini - FREE)
-GEMINI_API_KEY=...
+#### Web App (Next.js)
+Deploy the Next.js frontend to **Vercel** or any Node.js host. Ensure all `.env` variables are configured in your production dashboard.
 
-# Storage (Supabase - FREE)
-SUPABASE_URL=...
-SUPABASE_PUBLISHABLE_KEY=...
-SUPABASE_SECRET_KEY=...
+#### Processing Server (Express)
+The Express server can be deployed to **Render**, **Railway**, or a **VPS**.
+- Update `NEXT_PUBLIC_HOST_URL` in the frontend to point to your hosted Express URL.
 
-# Stripe
-STRIPE_SECRET_KEY=...
-STRIPE_PRO_PRICE_ID=...
-STRIPE_TEAM_PRICE_ID=...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=...
-STRIPE_WEBHOOK_SECRET=...
+#### Desktop App (Electron)
+To package the desktop recorder for your users:
+1. Navigate to the `desktop` folder: `cd desktop`
+2. Install dependencies: `npm install`
+3. Package the app: `npm run build`
+4. Find your branded `.exe` in the `dist/` folder.
 
-# Express Server
-EXPRESS_PORT=5050
+> [!TIP]
+> **Branding**: The app is pre-configured with the Vintyl logo and product name. For production, upload the generated `.exe` to your storage (Supabase or S3) and update the "Download" link in the dashboard sidebar.
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    A[Electron Desktop App] -->|Socket.IO| B[Express Processing Server]
+    B -->|Upload| C[Supabase Storage]
+    B -->|AI Request| D[Gemini 2.5 Flash]
+    D -->|JSON Metadata| B
+    B -->|Update DB| E[Neon Postgres]
+    F[Next.js Dashboard] -->|Read| E
+    F -->|Playback| C
+```
 
 # App
 NEXT_PUBLIC_HOST_URL=http://localhost:3000
