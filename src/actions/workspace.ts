@@ -10,8 +10,10 @@ export const verifyAccessToWorkspace = async (workspaceId: string) => {
 
     if (!user) return { status: 403 };
 
-    // Standard check via Member table ONLY to bypass Workspace RLS evaluated too early
-    const { data: member, error } = await supabase
+    // Use system client to bypass the self-referencing RLS policy on Member
+    // which causes 0 rows to be returned even for valid members
+    const systemSupabase = await createSystemClient();
+    const { data: member, error } = await systemSupabase
       .from("Member")
       .select("workspaceId")
       .eq("workspaceId", workspaceId)
@@ -39,7 +41,9 @@ export const getFirstWorkspaceForUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const { data: member, error } = await supabase
+    // Use system client to bypass the same RLS issue on Member table
+    const systemSupabase = await createSystemClient();
+    const { data: member, error } = await systemSupabase
       .from("Member")
       .select("workspaceId")
       .eq("supabaseId", user.id)
@@ -56,11 +60,15 @@ export const getFirstWorkspaceForUser = async () => {
 
 export const getWorkspaceFolders = async (workspaceId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: folders } = await supabase
+    // Use system client to bypass RLS circular dependency on Folder table
+    const systemSupabase = await createSystemClient();
+    const { data: folders, error } = await systemSupabase
       .from("Folder")
       .select("id, name, createdAt, videoCount")
-      .eq("workspaceId", workspaceId);
+      .eq("workspaceId", workspaceId)
+      .order("createdAt", { ascending: true });
+
+    if (error) console.error("getWorkspaceFolders error:", error.message);
 
     if (folders && folders.length > 0) {
       return { status: 200, data: folders };
@@ -74,15 +82,18 @@ export const getWorkspaceFolders = async (workspaceId: string) => {
 
 export const getAllUserVideos = async (workspaceId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 404, data: [] };
+    // Use system client to bypass RLS circular dependency on Video table
+    const systemSupabase = await createSystemClient();
 
-    const { data: videos } = await supabase
+    // Query only by workspaceId — folderId is a child of workspace, not an alternative root
+    const { data: videos, error } = await systemSupabase
       .from("Video")
       .select("*, Folder(id, name), User(firstName, lastName, image)")
-      .or(`workspaceId.eq.${workspaceId},folderId.eq.${workspaceId}`)
-      .order("createdAt", { ascending: true });
+      .eq("workspaceId", workspaceId)
+      .eq("processing", false)
+      .order("createdAt", { ascending: false });
+
+    if (error) console.error("getAllUserVideos error:", error.message);
 
     if (videos && videos.length > 0) {
       // Flatten User and Folder relations for each video
@@ -153,16 +164,7 @@ export const createWorkspace = async (name: string) => {
     // Use SYSTEM CLIENT to bypass RLS for provisioning
     const systemSupabase = await createSystemClient();
 
-    const { data: authorized } = await systemSupabase
-      .from("Subscription")
-      .select("plan")
-      .eq("userId", user.id)
-      .single();
-
-    const isPro = authorized?.plan === "PRO";
-    const workspaceType = isPro ? "PUBLIC" : "PERSONAL";
-
-    // Lookup the internal User ID first, since Workspace.userId references public.User.id (not supabaseId)
+    // Lookup the internal User ID first
     const { data: dbUser } = await systemSupabase
       .from("User")
       .select("id")
@@ -170,6 +172,34 @@ export const createWorkspace = async (name: string) => {
       .single();
 
     if (!dbUser) return { status: 404, data: "User record not found" };
+
+    // Check subscription using internal user ID (not supabase auth ID)
+    const { data: authorized } = await systemSupabase
+      .from("Subscription")
+      .select("plan")
+      .eq("userId", dbUser.id)
+      .single();
+
+    const isPro = authorized?.plan === "PRO";
+    const workspaceType = isPro ? "PUBLIC" : "PERSONAL";
+
+    // If trying to create a PERSONAL workspace but one already exists, return the existing one
+    if (!isPro) {
+      const { data: existingWS } = await systemSupabase
+        .from("Workspace")
+        .select("id")
+        .eq("userId", dbUser.id)
+        .eq("type", "PERSONAL")
+        .single();
+      if (existingWS) {
+        // Ensure membership exists
+        await systemSupabase.from("Member").upsert(
+          { userId: dbUser.id, workspaceId: existingWS.id, supabaseId: user.id },
+          { onConflict: "workspaceId, supabaseId" }
+        );
+        return { status: 201, data: existingWS.id };
+      }
+    }
 
     const { data: workspace, error } = await systemSupabase
       .from("Workspace")
@@ -182,17 +212,20 @@ export const createWorkspace = async (name: string) => {
       .single();
 
     if (workspace && !error) {
-       // Also add membership for owner (just in case)
-       await systemSupabase.from("Member").upsert({ userId: dbUser.id, workspaceId: workspace.id, supabaseId: user.id }, { onConflict: 'userId, workspaceId' });
+      // Add membership for owner using correct unique constraint (workspaceId, supabaseId)
+      await systemSupabase.from("Member").upsert(
+        { userId: dbUser.id, workspaceId: workspace.id, supabaseId: user.id },
+        { onConflict: "workspaceId, supabaseId" }
+      );
 
-      return { 
-        status: 201, 
-        data: workspace.id // Return the ID for direct redirect
+      return {
+        status: 201,
+        data: workspace.id
       };
     }
 
     if (error) {
-        console.error("❌ createWorkspace Error:", error.message);
+      console.error("❌ createWorkspace Error:", error.message);
     }
 
     return { status: 400, data: "Failed to create workspace" };
@@ -208,11 +241,12 @@ export const createFolder = async (workspaceId: string) => {
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) return { status: 403 };
 
-    // Lookup internal User ID first
-    const { data: dbUser } = await supabase.from("User").select("id").eq("supabaseId", authUser.id).single();
+    // Use system client to bypass RLS for User lookup and Folder insert
+    const systemSupabase = await createSystemClient();
+    const { data: dbUser } = await systemSupabase.from("User").select("id").eq("supabaseId", authUser.id).single();
     if (!dbUser) return { status: 404 };
 
-    const { data: folder, error } = await supabase
+    const { data: folder, error } = await systemSupabase
       .from("Folder")
       .insert({ workspaceId, userId: dbUser.id, name: "Untitled" })
       .select()
@@ -324,12 +358,12 @@ export const moveVideoLocation = async (
   try {
     const supabase = await createClient();
     const { error } = await supabase
-        .from("Video")
-        .update({
-            folderId: folderId || null,
-            workspaceId: workSpaceId,
-        })
-        .eq("id", videoId);
+      .from("Video")
+      .update({
+        folderId: folderId || null,
+        workspaceId: workSpaceId,
+      })
+      .eq("id", videoId);
 
     if (!error) return { status: 200, data: "folder changed successfully" };
 
@@ -426,7 +460,7 @@ export const getWorkspaceMembers = async (workspaceId: string) => {
 
     // PostgREST might return relations as arrays. We flatten them for the frontend.
     const owner = Array.isArray(members.User) ? members.User[0] : members.User;
-    
+
     // Deduplicate members list by unique userId
     const memberMap = new Map();
     (members.members || []).forEach((m: any) => {

@@ -35,16 +35,6 @@ export default async function WorkspaceLayout({
     return redirect("/auth");
   }
 
-  // RUNTIME DEBUG (Temporary)
-  const supabase = await (await import("@/lib/supabase/server")).createClient();
-  const { data: { user: debugUser } } = await supabase.auth.getUser();
-  const { data: debugMembers } = await supabase.from("Member").select("*");
-  console.log("🛠️ RUNTIME DEBUG:", {
-    authUser: debugUser?.id,
-    membersFound: debugMembers?.length || 0,
-    members: debugMembers
-  });
-
   if (!auth.user?.workspace || auth.user.workspace.length === 0) {
     console.log("⚠️ WorkspaceLayout: No workspaces found, redirecting to /dashboard for auto-provisioning");
     return redirect("/dashboard");
@@ -54,15 +44,15 @@ export default async function WorkspaceLayout({
 
   if (hasAccess.status !== 200) {
     console.log("🚫 WorkspaceLayout: Access denied for workspace:", workspaceId);
-    
+
     // Attempt fallback to the first valid workspace
     const fallback = await getFirstWorkspaceForUser();
-    
+
     if (fallback.status === 200 && fallback.workspaceId && fallback.workspaceId !== workspaceId) {
       console.log("➡️ WorkspaceLayout: Redirecting to primary workspace fallback:", fallback.workspaceId);
       return redirect(`/dashboard/${fallback.workspaceId}`);
     }
-    
+
     // If no fallback found OR fallback is same as current (prevent loop), terminate to auth
     console.error("❌ WorkspaceLayout: Terminal authorization failure.");
     return redirect("/auth");

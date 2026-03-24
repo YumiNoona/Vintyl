@@ -36,7 +36,49 @@ export const onAuthenticatedUser = cache(async () => {
         console.log("🔄 Triggering Stripe sync fallback via getSubscription()...");
         await getSubscription();
       }
-      return { status: 200, user: userExists };
+
+      // Repair: ensure Member rows exist for all workspaces.
+      // The DB trigger may have failed silently for existing accounts,
+      // causing verifyAccessToWorkspace to see 0 members and block login.
+      const workspaces: any[] = Array.isArray(userExists.workspace) ? userExists.workspace : [];
+      if (workspaces.length === 0) {
+        console.log("🔧 onAuthenticatedUser: No workspace found, creating one...");
+        const { data: newWS } = await systemSupabase
+          .from("Workspace")
+          .insert({ userId: userExists.id, name: "Personal Workspace", type: "PERSONAL" })
+          .select()
+          .single();
+        if (newWS) {
+          workspaces.push(newWS);
+          await systemSupabase.from("Member").insert(
+            { userId: userExists.id, workspaceId: newWS.id, supabaseId: user.id }
+          );
+          console.log("✅ Workspace + Member created");
+        }
+      } else {
+        // Ensure a Member row exists for each workspace this user owns
+        for (const ws of workspaces) {
+          const { data: existingMember } = await systemSupabase
+            .from("Member")
+            .select("id")
+            .eq("workspaceId", ws.id)
+            .eq("supabaseId", user.id)
+            .maybeSingle();
+          if (!existingMember) {
+            console.log("🔧 Repairing missing Member row for workspace", ws.id);
+            const { error: memberErr } = await systemSupabase.from("Member").insert(
+              { userId: userExists.id, workspaceId: ws.id, supabaseId: user.id }
+            );
+            if (memberErr) {
+              console.error("❌ Failed to repair Member row:", memberErr.message);
+            } else {
+              console.log("✅ Member row repaired for workspace", ws.id);
+            }
+          }
+        }
+      }
+
+      return { status: 200, user: { ...userExists, workspace: workspaces } };
     }
 
     console.log("❓ onAuthenticatedUser: No record in public.User table. Attempting manual sync fallback with system client.");
@@ -56,45 +98,45 @@ export const onAuthenticatedUser = cache(async () => {
 
     if (newUser && !createError) {
       console.log("✅ onAuthenticatedUser: Manually created user record (Bypassed RLS)");
-      
+
       // Ensure Subscription exists (Idempotent)
       await systemSupabase.from("Subscription").upsert({ userId: newUser.id, plan: 'FREE' }, { onConflict: 'userId' });
-      
+
       // Ensure Workspace exists (Idempotent-ish via select fallback)
       let wsId: string | undefined;
       const { data: existingWS } = await systemSupabase.from("Workspace").select("id").eq("userId", newUser.id).limit(1).single();
-      
+
       if (existingWS) {
         wsId = existingWS.id;
       } else {
         const { data: newWS } = await systemSupabase.from("Workspace").insert({ userId: newUser.id, name: 'Personal Workspace', type: 'PERSONAL' }).select().single();
         wsId = newWS?.id;
       }
-      
+
       if (wsId) {
         // Ensure Membership exists (Idempotent)
         await systemSupabase.from("Member").upsert({ userId: newUser.id, workspaceId: wsId, supabaseId: user.id }, { onConflict: 'userId, workspaceId' });
-        
+
         // Return enriched user
         const { data: enrichedUser, error: enrichError } = await systemSupabase
           .from("User")
           .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
           .eq("id", newUser.id)
           .single();
-          
+
         if (enrichedUser && !enrichError) {
-            console.log("✅ onAuthenticatedUser: Successfully enriched fallback record with workspace.");
-            return { status: 201, user: enrichedUser };
+          console.log("✅ onAuthenticatedUser: Successfully enriched fallback record with workspace.");
+          return { status: 201, user: enrichedUser };
         }
 
         // Final fallback if enrichment failed
-        return { 
-            status: 201, 
-            user: { 
-                ...newUser, 
-                workspace: wsId ? [{ id: wsId, name: 'Personal Workspace', type: 'PERSONAL' }] : [],
-                subscription: { plan: 'FREE' }
-            } 
+        return {
+          status: 201,
+          user: {
+            ...newUser,
+            workspace: wsId ? [{ id: wsId, name: 'Personal Workspace', type: 'PERSONAL' }] : [],
+            subscription: { plan: 'FREE' }
+          }
         };
       }
 
@@ -128,12 +170,12 @@ export const getNotifications = async () => {
       .single();
 
     if (notifications && (notifications as any).Notification.length > 0) {
-      return { 
-        status: 200, 
-        data: { 
-            notifications: (notifications as any).Notification,
-            _count: { notifications: (notifications as any).Notification.length }
-        } 
+      return {
+        status: 200,
+        data: {
+          notifications: (notifications as any).Notification,
+          _count: { notifications: (notifications as any).Notification.length }
+        }
       };
     }
 
@@ -208,7 +250,7 @@ export const updateUserProfile = async (firstName: string, lastName: string, ima
     // Update Auth Metadata as well for session consistency
     const updateData: any = { first_name: firstName, last_name: lastName };
     if (image) updateData.avatar_url = image;
-    
+
     await supabase.auth.updateUser({ data: updateData });
 
     return { status: 200, data: "Profile updated successfully" };

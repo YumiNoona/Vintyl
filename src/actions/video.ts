@@ -48,8 +48,8 @@ export const getVideoComments = async (videoId: string) => {
       .order("createdAt", { ascending: false });
 
     if (error) {
-       console.error("❌ getVideoComments Error:", error.message);
-       return { status: 400, data: [] };
+      console.error("❌ getVideoComments Error:", error.message);
+      return { status: 400, data: [] };
     }
 
     // Flatten User relation for each comment
@@ -143,8 +143,10 @@ export const incrementVideoViews = async (videoId: string) => {
 
 export const transcribeVideo = async (videoId: string) => {
   try {
-    const supabase = await createClient();
-    
+    // Use system client so this works when called fire-and-forget (no user session cookie)
+    const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
+    const supabase = getSupabaseAdmin();
+
     await supabase
       .from("Video")
       .update({
@@ -164,7 +166,9 @@ export const transcribeVideo = async (videoId: string) => {
 
 export const generateSummary = async (videoId: string) => {
   try {
-    const supabase = await createClient();
+    // Use system client to bypass RLS on Video table
+    const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
+    const supabase = getSupabaseAdmin();
     const { data: video } = await supabase
       .from("Video")
       .select("transcript")
@@ -174,7 +178,7 @@ export const generateSummary = async (videoId: string) => {
     if (!video || !video.transcript) return { status: 404 };
 
     const summary = "In this video, the recorder demonstrates the platform features and discusses the integration between the desktop and web components. Key points include the new AI pipeline and the streamlined sharing UX.";
-    
+
     await supabase
       .from("Video")
       .update({
