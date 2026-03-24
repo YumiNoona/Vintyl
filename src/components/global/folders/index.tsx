@@ -14,14 +14,14 @@ type FolderListProps = {
 
 export default function FolderList({ workspaceId }: FolderListProps) {
   const { data, isFetched } = useQueryData(
-    ["workspace-folders"],
+    ["workspace-folders", workspaceId],
     () => getWorkspaceFolders(workspaceId)
   );
 
   const { mutate, isPending } = useMutationData(
     ["create-folder"],
     () => createFolder(workspaceId),
-    "workspace-folders"
+    ["workspace-folders", workspaceId]
   );
 
   const { status, data: folders } = data as FolderProps;
@@ -49,7 +49,7 @@ export default function FolderList({ workspaceId }: FolderListProps) {
               id={folder.id}
               name={folder.name}
               workspaceId={workspaceId}
-              count={folder._count?.videos || 0}
+              count={folder.videoCount || 0}
             />
           ))
         ) : (

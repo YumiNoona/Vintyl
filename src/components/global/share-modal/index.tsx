@@ -33,15 +33,15 @@ export default function ShareModal({ videoId, trigger }: ShareModalProps) {
       <div onClick={(e) => e.stopPropagation()}>
         <Tabs defaultValue="link" className="w-full mt-4">
           <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border border-white/5">
-            <TabsTrigger value="link">Copy Link</TabsTrigger>
-            <TabsTrigger value="embed">Embed Code</TabsTrigger>
+            <TabsTrigger value="link" className="data-[state=active]:bg-neutral-800 rounded-md py-1.5 text-xs font-bold">Copy Link</TabsTrigger>
+            <TabsTrigger value="embed" className="data-[state=active]:bg-neutral-800 rounded-md py-1.5 text-xs font-bold">Embed Code</TabsTrigger>
           </TabsList>
           <TabsContent value="link" className="space-y-4 mt-4">
             <div className="flex bg-neutral-900 border border-white/10 rounded-lg p-3 items-center justify-between">
               <span className="text-sm text-neutral-400 truncate max-w-[280px]">{link}</span>
-              <Button size="sm" onClick={onCopyLink} className="bg-purple-600 hover:bg-purple-700 h-8 gap-2 flex-shrink-0 ml-4">
+              <Button size="sm" onClick={onCopyLink} className="bg-white hover:bg-neutral-200 text-black font-black h-8 gap-2 flex-shrink-0 ml-4 rounded-lg transform active:scale-95 transition-all text-[10px] uppercase tracking-widest">
                 {copiedLink ? <Check size={14} /> : <Copy size={14} />}
-                {copiedLink ? "Copied" : "Copy"}
+                {copiedLink ? "Copied" : "Copy Link"}
               </Button>
             </div>
           </TabsContent>

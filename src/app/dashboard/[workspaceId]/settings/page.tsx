@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { updateUserProfile } from "@/actions/user";
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
@@ -40,11 +41,9 @@ export default function SettingsPage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({
-      data: { first_name: firstName, last_name: lastName }
-    });
+    const result = await updateUserProfile(firstName, lastName);
 
-    if (error) toast.error(error.message);
+    if (result.status !== 200) toast.error(result.data);
     else toast.success("Profile updated!");
     setLoading(false);
   };
@@ -90,11 +89,9 @@ export default function SettingsPage() {
       .from("vintyl-videos")
       .getPublicUrl(`avatars/${fileName}`);
 
-    const { error: updateError } = await supabase.auth.updateUser({
-      data: { avatar_url: publicUrl }
-    });
+    const result = await updateUserProfile(firstName, lastName, publicUrl);
 
-    if (updateError) toast.error(updateError.message);
+    if (result.status !== 200) toast.error(result.data);
     else toast.success("Avatar updated!");
     setLoading(false);
   };
@@ -102,12 +99,12 @@ export default function SettingsPage() {
   return (
     <div className="pb-20">
       <div className="flex items-center gap-3 mb-8">
-        <div className="w-10 h-10 rounded-xl bg-purple-600/10 flex items-center justify-center text-purple-600 border border-purple-500/20">
+        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white border border-white/10 shadow-xl shadow-white/5">
            <SettingsIcon size={20} />
         </div>
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-foreground">Settings</h1>
-          <p className="text-muted-foreground text-sm uppercase font-black tracking-widest opacity-60">Workspace & Account Control</p>
+          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Settings</h1>
+          <p className="text-neutral-500 text-[10px] uppercase font-black tracking-widest opacity-60">Workspace & Account Control</p>
         </div>
       </div>
 
@@ -115,20 +112,20 @@ export default function SettingsPage() {
         {/* Left Column: Profile */}
         <div className="space-y-8">
           {/* Profile Form */}
-          <section className="bg-secondary/10 border border-border rounded-3xl p-6 backdrop-blur-xl">
-            <h2 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
-              <User size={18} className="text-purple-600" />
-              Your Profile
+          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
+            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+              <User size={16} className="text-white" />
+              General Profile
             </h2>
             
-            <div className="flex items-center gap-6 mb-8">
+            <div className="flex items-center gap-8 mb-10">
                <div className="relative group">
-                  <div className="w-24 h-24 rounded-2xl overflow-hidden bg-secondary border border-border group-hover:opacity-50 transition-all">
+                  <div className="w-24 h-24 rounded-3xl overflow-hidden bg-white/5 border border-white/10 group-hover:opacity-50 transition-all shadow-inner">
                      {user?.user_metadata?.avatar_url ? (
                         <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-purple-600 text-white font-black text-3xl">
-                           {firstName.charAt(0)}
+                        <div className="w-full h-full flex items-center justify-center bg-white text-black font-black text-3xl">
+                           {firstName?.charAt(0)}
                         </div>
                      )}
                   </div>
@@ -138,41 +135,41 @@ export default function SettingsPage() {
                   </label>
                </div>
                <div className="space-y-1">
-                  <p className="font-bold text-lg">{firstName} {lastName}</p>
-                  <p className="text-muted-foreground text-sm">{email}</p>
+                  <p className="font-black text-xl text-white tracking-tight leading-none">{firstName} {lastName}</p>
+                  <p className="text-neutral-500 text-sm font-medium">{email}</p>
                </div>
             </div>
 
-            <form onSubmit={handleUpdateProfile} className="space-y-4">
+            <form onSubmit={handleUpdateProfile} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">First Name</label>
-                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-secondary/20 h-11 border-border rounded-xl" />
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">First Name</label>
+                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">Last Name</label>
-                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-secondary/20 h-11 border-border rounded-xl" />
+                <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">Last Name</label>
+                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-foreground text-background font-bold h-11 rounded-xl">
-                 {loading ? <Loader2 className="animate-spin" /> : "Save Changes"}
+              <Button type="submit" disabled={loading} className="w-full bg-white hover:bg-neutral-200 text-black font-black h-12 rounded-2xl shadow-xl shadow-white/5 uppercase tracking-widest text-[10px]">
+                 {loading ? <Loader2 className="animate-spin" /> : "Save Profile Details"}
               </Button>
             </form>
           </section>
 
           {/* Email Form */}
-          <section className="bg-secondary/10 border border-border rounded-3xl p-6 backdrop-blur-xl">
-            <h2 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
-              <Mail size={18} className="text-purple-600" />
+          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
+            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+              <Mail size={16} className="text-white" />
               Email Address
             </h2>
-            <form onSubmit={handleUpdateEmail} className="space-y-4">
-               <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">Update Email</label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-secondary/20 h-11 border-border rounded-xl" />
+            <form onSubmit={handleUpdateEmail} className="space-y-6">
+               <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">Update Email</label>
+                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                </div>
-               <Button type="submit" variant="secondary" disabled={loading} className="w-full font-bold h-11 rounded-xl border border-border">
-                 Update Email
+               <Button type="submit" variant="secondary" disabled={loading} className="w-full bg-white/5 hover:bg-white/10 text-white font-black h-12 rounded-2xl border border-white/10 uppercase tracking-widest text-[10px]">
+                 Request Email Change
                </Button>
             </form>
           </section>
@@ -181,41 +178,41 @@ export default function SettingsPage() {
         {/* Right Column: Security & Workspace */}
         <div className="space-y-8">
            {/* Password Form */}
-           <section className="bg-secondary/10 border border-border rounded-3xl p-6 backdrop-blur-xl">
-            <h2 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
-              <Lock size={18} className="text-purple-600" />
+           <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
+            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+              <Lock size={16} className="text-white" />
               Security
             </h2>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-               <div className="space-y-1">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-muted-foreground ml-1">New Password</label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-secondary/20 h-11 border-border rounded-xl" placeholder="••••••••" />
+            <form onSubmit={handleChangePassword} className="space-y-6">
+               <div className="space-y-2">
+                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">New Password</label>
+                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" placeholder="••••••••" />
                </div>
-               <Button type="submit" variant="secondary" disabled={loading || !newPassword} className="w-full font-bold h-11 rounded-xl border border-border">
-                 Change Password
+               <Button type="submit" variant="secondary" disabled={loading || !newPassword} className="w-full bg-white/5 hover:bg-white/10 text-white font-black h-12 rounded-2xl border border-white/10 uppercase tracking-widest text-[10px]">
+                 Update Password
                </Button>
             </form>
           </section>
 
           {/* Desktop App Linking */}
-          <section className="bg-secondary/10 border border-border rounded-3xl p-6 backdrop-blur-xl">
-            <h2 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
-              <Monitor size={18} className="text-purple-600" />
-              Desktop App Linking
+          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
+            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+              <Monitor size={16} className="text-white" />
+              Desktop App
             </h2>
-            <div className="space-y-4">
-               <p className="text-muted-foreground text-sm">
-                Copy your User ID and paste it into the Vintyl Desktop app to link your account and enable recording.
+            <div className="space-y-6">
+               <p className="text-neutral-400 text-xs leading-relaxed font-medium">
+                Copy your User ID and paste it into the Vintyl Desktop app to link your account and enable high-performance recording.
               </p>
               <div className="flex gap-2">
                 <Input 
                   readOnly 
                   value={user?.id || ""} 
-                  className="bg-secondary/20 h-11 border-border rounded-xl font-mono text-xs" 
+                  className="bg-white/5 h-12 border-white/5 rounded-2xl font-mono text-[10px] text-white/50" 
                 />
                 <Button 
                   variant="secondary" 
-                  className="h-11 rounded-xl px-4 border border-border"
+                  className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-all shadow-xl shadow-white/5 shrink-0"
                   onClick={() => {
                     if (user?.id) {
                       navigator.clipboard.writeText(user.id);
@@ -230,18 +227,18 @@ export default function SettingsPage() {
           </section>
 
           {/* Members (Moved here) */}
-          <section className="bg-secondary/10 border border-border rounded-3xl p-6 backdrop-blur-xl">
-            <h2 className="text-lg font-black tracking-tight mb-6 flex items-center gap-2">
-              <Users size={18} className="text-purple-600" />
+          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
+            <h2 className="text-sm font-black tracking-widest mb-6 flex items-center gap-3 uppercase text-neutral-500">
+              <Users size={16} className="text-white" />
               Workspace Members
             </h2>
-            <div className="space-y-4">
-               <p className="text-muted-foreground text-sm">
-                Invite team members and manage collaborators for this workspace.
+            <div className="space-y-6">
+               <p className="text-neutral-400 text-xs leading-relaxed font-medium">
+                Invite team members and manage collaborators for this workspace. Use email addresses to send secure invitations.
               </p>
               <Modal
                 trigger={
-                   <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold h-11 rounded-xl shadow-lg shadow-purple-500/20 gap-2">
+                   <Button className="w-full bg-white hover:bg-neutral-200 text-black font-black h-12 rounded-2xl shadow-xl shadow-white/5 gap-2 uppercase tracking-widest text-[10px]">
                       <PlusCircle size={16} />
                       Invite Member
                    </Button>

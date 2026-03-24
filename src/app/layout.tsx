@@ -4,7 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme";
 import { ReactQueryProvider } from "@/react-query";
 import { Toaster } from "sonner";
-import { VoiceflowAgent } from "@/components/global/voice-flow";
+// import { VoiceflowAgent } from "@/components/global/voice-flow";
 
 
 const inter = Inter({
@@ -37,7 +37,7 @@ export default function RootLayout({
           <ReactQueryProvider>
             {children}
             <Toaster />
-            <VoiceflowAgent />
+            {/* <VoiceflowAgent /> */}
           </ReactQueryProvider>
         </ThemeProvider>
       </body>

@@ -347,6 +347,12 @@ body {
   color: #fff;
 }
 
+.link-btn.danger:hover {
+  border-color: #e53935;
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.1);
+}
+
 .input-sm {
   background: #1a1a1a;
   border: 1px solid #333;

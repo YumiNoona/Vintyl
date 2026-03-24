@@ -1,44 +1,66 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { cookies } from "next/headers";
 
 export const getVideoDetails = async (videoId: string) => {
   try {
+    const SELECT_QUERY = "*, Folder(id, name), User(*, Subscription(plan))";
+
     const supabase = await createClient();
-    const { data: video } = await supabase
+    const { data: video, error } = await supabase
       .from("Video")
-      .select("*, Folder(id, name), User(*, Trial(trial), Subscription(plan))")
+      .select(SELECT_QUERY)
       .eq("id", videoId)
       .single();
 
+    if (error) {
+      console.error("getVideoDetails RLS/query error:", error.message);
+    }
+
     if (video) {
-        // Map the structure to match what UI expects (lowercase user, folder from join)
-        const formattedVideo = {
-            ...video,
-            user: video.User,
-            folder: video.Folder
-        };
-      return { status: 200, data: formattedVideo, author: true };
+      const folder = Array.isArray(video.Folder) ? video.Folder[0] : video.Folder;
+      const rawUser = Array.isArray(video.User) ? video.User[0] : video.User;
+
+      const user = rawUser ? {
+        ...rawUser,
+        Subscription: Array.isArray(rawUser.Subscription) ? rawUser.Subscription[0] : rawUser.Subscription,
+      } : null;
+
+      return { status: 200, data: { ...video, Folder: folder, User: user }, author: true };
     }
 
     return { status: 404, data: null };
   } catch (error) {
+    console.error("getVideoDetails error:", error);
     return { status: 400, data: null };
   }
 };
 
+
+
 export const getVideoComments = async (videoId: string) => {
   try {
     const supabase = await createClient();
-    const { data: comments } = await supabase
+    const { data: comments, error } = await supabase
       .from("Comment")
       .select("*, User(id, firstName, lastName, image)")
       .eq("videoId", videoId)
       .order("createdAt", { ascending: false });
 
-    return { status: 200, data: comments };
+    if (error) {
+       console.error("❌ getVideoComments Error:", error.message);
+       return { status: 400, data: [] };
+    }
+
+    // Flatten User relation for each comment
+    const flattenedComments = (comments || []).map((c: any) => ({
+      ...c,
+      User: Array.isArray(c.User) ? c.User[0] : c.User,
+    }));
+
+    return { status: 200, data: flattenedComments };
   } catch (error) {
+    console.error("❌ getVideoComments Catch:", error);
     return { status: 400, data: [] };
   }
 };
@@ -76,6 +98,7 @@ export const createComment = async (
 export const incrementVideoViews = async (videoId: string) => {
   try {
     const supabase = await createClient();
+    const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
     const viewCookie = cookieStore.get(`viewed_${videoId}`);
 

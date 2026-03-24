@@ -328,7 +328,7 @@ export default function RecordPreview({
                         </div>
                         <div>
                           <span className="font-black text-sm block uppercase tracking-tight">{f.name}</span>
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{f._count.videos} Videos</span>
+                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{f.videoCount || 0} Videos</span>
                         </div>
                       </button>
                     ))}

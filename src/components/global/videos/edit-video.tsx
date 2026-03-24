@@ -28,7 +28,7 @@ const EditVideo = ({ videoId, title, description }: Props) => {
     ["edit-video"],
     (data: { title: string; description: string }) =>
       editVideoInfo(videoId, data.title, data.description),
-    "preview-video"
+    [["preview-video", videoId], ["user-videos"]]
   );
 
   const { register, onFormSubmit, errors } = useZodForm(
@@ -39,11 +39,11 @@ const EditVideo = ({ videoId, title, description }: Props) => {
 
   return (
     <Modal
-      title="Edit Video Details"
-      description="Update your video title and description."
+      title="Rename & Details"
+      description="Update your video title and description for clarity."
       trigger={
-        <Button variant="ghost" className="rounded-full shadow-lg border-2 border-border p-2">
-          <Edit size={16} className="text-foreground" />
+        <Button variant="ghost" className="rounded-full shadow-2xl bg-neutral-900 border border-white/10 p-2.5 hover:bg-neutral-800 text-white transition-all transform active:scale-90">
+          <Edit size={16} />
         </Button>
       }
     >
@@ -53,7 +53,7 @@ const EditVideo = ({ videoId, title, description }: Props) => {
           <Input
             {...register("title")}
             placeholder="Video Title"
-            className="bg-secondary/50 border-none focus-visible:ring-purple-500"
+            className="bg-white/5 border-white/5 focus-visible:ring-white/20 h-11 rounded-xl font-bold text-white"
           />
           {errors.title && (
             <p className="text-red-500 text-xs">{errors.title.message as string}</p>
@@ -65,7 +65,7 @@ const EditVideo = ({ videoId, title, description }: Props) => {
             {...register("description")}
             placeholder="Video Description"
             rows={5}
-            className="bg-secondary/50 border-none focus-visible:ring-purple-500 resize-none"
+            className="bg-white/5 border-white/5 focus-visible:ring-white/20 rounded-xl font-medium text-white/80 resize-none"
           />
           {errors.description && (
             <p className="text-red-500 text-xs">{errors.description.message as string}</p>
@@ -73,10 +73,10 @@ const EditVideo = ({ videoId, title, description }: Props) => {
         </div>
         <Button
           type="submit"
-          className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 transition-all font-bold"
+          className="bg-white hover:bg-neutral-200 text-black font-black h-12 rounded-2xl shadow-xl shadow-white/5 uppercase tracking-widest text-[10px] mt-2 transition-all"
           disabled={isPending}
         >
-          {isPending ? "Updating..." : "Save Changes"}
+          {isPending ? "Updating Video..." : "Save Changes"}
         </Button>
       </form>
     </Modal>

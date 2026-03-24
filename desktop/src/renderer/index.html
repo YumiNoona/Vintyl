@@ -73,13 +73,13 @@
     <!-- Account Linking -->
     <div class="account-section">
       <div id="account-status" class="account-status">
-        <span id="plan-badge" class="badge">FREE</span>
+        <span id="plan-badge" class="badge" style="display:none">FREE</span>
         <span id="user-display">Not Linked</span>
         <button id="link-btn" class="link-btn">Link Account</button>
       </div>
-      <div id="link-input-container" style="display: none;">
-        <input type="text" id="user-id-input" placeholder="Enter User ID..." class="input-sm" />
-        <button id="save-user-id" class="btn btn-primary btn-sm">Save</button>
+      <div id="account-info" class="account-info" style="display:none">
+        <span class="user-email text-xs text-muted"></span>
+        <button id="unlink-btn" class="link-btn danger">Unlink</button>
       </div>
     </div>
   </div>

@@ -21,12 +21,25 @@ export default function VideoList({
   videosKey = "user-videos",
 }: VideoListProps) {
   const router = useRouter();
-  const { data: videoData, isFetched } = useQueryData(
-    [videosKey],
+  const { data: videoData, isFetched, isPending } = useQueryData(
+    [videosKey, folderId || workspaceId],
     () => getAllUserVideos(folderId || workspaceId)
   );
 
   const { status, data: videos } = (videoData as VideosProps) || { status: 404, data: [] };
+
+  if (isPending || !isFetched) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-foreground text-xl font-bold tracking-tight">Videos</h2>
+        </div>
+        <div className="w-full flex justify-center items-center py-24">
+          <p className="text-muted-foreground text-sm font-bold animate-pulse">Loading videos...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
@@ -34,8 +47,8 @@ export default function VideoList({
         <h2 className="text-foreground text-xl font-bold tracking-tight">Videos</h2>
       </div>
 
-      {!isFetched ? null : status === 200 && videos && videos.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4">
+      {status === 200 && videos && videos.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 animate-in fade-in duration-500">
           {videos.map((video) => (
             <VideoCard
               key={video.id}
@@ -52,7 +65,7 @@ export default function VideoList({
           ))}
         </div>
       ) : (
-        <div className="w-full flex justify-center items-center flex-col gap-6 py-24 bg-secondary/20 border-2 border-border border-dashed rounded-[2rem] transition-colors duration-300">
+        <div className="w-full flex justify-center items-center flex-col gap-6 py-24 bg-secondary/20 border-2 border-border border-dashed rounded-[2rem] transition-colors duration-300 animate-in fade-in duration-500">
           <div className="bg-secondary p-6 rounded-full text-muted-foreground shadow-inner ring-1 ring-border">
             <VideoOff size={36} strokeWidth={1.5} />
           </div>

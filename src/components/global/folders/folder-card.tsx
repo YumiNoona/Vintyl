@@ -158,9 +158,9 @@ export default function FolderCard({
           onDoubleClick={handleDoubleClick}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`flex hover:bg-secondary/80 cursor-pointer transition-all duration-200 items-center gap-2 justify-between min-w-[250px] py-4 px-5 rounded-2xl border-2 group ${
-            optimistic ? "opacity-60" : "border-border bg-card/50"
-          } hover:border-purple-500/50 hover:shadow-xl hover:shadow-purple-500/5 backdrop-blur-sm`}
+          className={`flex hover:bg-neutral-800/80 cursor-pointer transition-all duration-300 items-center gap-3 justify-between min-w-[250px] py-4 px-6 rounded-3xl border-2 group ${
+            optimistic ? "opacity-60" : "border-white/5 bg-neutral-900/40"
+          } hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 backdrop-blur-xl`}
         >
           <div className="flex flex-col gap-0">
             {onRename ? (
@@ -173,14 +173,14 @@ export default function FolderCard({
                 className="border-none text-base w-full outline-none text-foreground bg-transparent p-0 h-auto focus:ring-0 font-bold"
               />
             ) : (
-              <p className="text-foreground font-bold tracking-tight">{name}</p>
+            <p className="text-white font-black tracking-tight text-sm uppercase">{name}</p>
             )}
-            <span className="text-[10px] uppercase tracking-widest font-black text-muted-foreground/70">
+            <span className="text-[10px] uppercase tracking-widest font-black text-neutral-500 mt-0.5">
               {count || 0} video{count !== 1 ? "s" : ""}
             </span>
           </div>
-          <div className="size-10 rounded-xl bg-secondary flex items-center justify-center border border-border group-hover:border-purple-500/50 transition-all shadow-sm">
-            <Folder className="text-muted-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors" size={20} />
+          <div className="size-11 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-white/20 group-hover:bg-white group-hover:text-black transition-all shadow-inner">
+            <Folder className="opacity-80 transition-transform group-hover:scale-110" size={20} fill="currentColor" />
           </div>
         </div>
       </ContextMenuTrigger>
@@ -234,31 +234,31 @@ export default function FolderCard({
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
-             <div className="grid gap-3">
+              <div className="grid gap-3">
                 {workspaceList.map((w) => (
                   <button
                     key={w.id}
                     onClick={() => setSelectedWorkspace(w.id)}
-                    className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
+                    className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 ${
                       selectedWorkspace === w.id 
-                        ? "bg-purple-600/10 border-purple-500 text-purple-700 dark:text-purple-400 shadow-md" 
-                        : "bg-secondary/40 border-transparent text-muted-foreground hover:border-border hover:bg-secondary"
+                        ? "bg-white/5 border-white text-white shadow-2xl shadow-white/5" 
+                        : "bg-neutral-900/40 border-white/5 text-neutral-500 hover:border-white/10 hover:bg-neutral-800/80"
                     }`}
                   >
-                    <span className="font-bold">{w.name}</span>
-                    {selectedWorkspace === w.id && <div className="size-2.5 rounded-full bg-purple-500 shadow-[0_0_12px_purple]" />}
+                    <span className="font-black text-sm uppercase tracking-tight">{w.name}</span>
+                    {selectedWorkspace === w.id && <div className="size-2.5 rounded-full bg-white shadow-[0_0_15px_white]" />}
                   </button>
                 ))}
-             </div>
+              </div>
           </div>
-          <DialogFooter className="mt-6">
-            <Button variant="ghost" onClick={() => setIsMoveOpen(false)} className="rounded-xl h-11 font-bold">Cancel</Button>
+          <DialogFooter className="mt-8">
+            <Button variant="ghost" onClick={() => setIsMoveOpen(false)} className="rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest text-neutral-500 hover:text-white">Cancel</Button>
             <Button 
-              className="bg-foreground text-background hover:bg-foreground/90 font-bold h-11 px-8 rounded-xl shadow-lg shadow-foreground/10 transition-all active:scale-95"
+              className="bg-white text-black hover:bg-neutral-200 font-black h-12 px-8 rounded-2xl shadow-2xl shadow-white/5 transition-all active:scale-95 uppercase text-[10px] tracking-widest"
               onClick={() => moveMutate({ workspaceId: selectedWorkspace })}
               disabled={selectedWorkspace === workspaceId || moving}
             >
-              {moving ? "Moving..." : "Move Folder"}
+              {moving ? "Moving Content..." : "Confirm Move"}
             </Button>
           </DialogFooter>
         </DialogContent>

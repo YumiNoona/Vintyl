@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { supabaseAdmin } from "@/lib/supabase/admin"
-import { supabase } from "@/lib/storage"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
+import { getStorageClient } from "@/lib/storage"
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +14,9 @@ export async function POST(req: NextRequest) {
     if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const supabaseAdmin = getSupabaseAdmin()
+    const supabaseStorage = getStorageClient()
 
     // Resolve Supabase Auth ID to internal User ID
     const { data: internalUser } = await supabaseAdmin
@@ -40,7 +43,7 @@ export async function POST(req: NextRequest) {
     const bucketName = "vintyl-videos"
 
     // Create a signed upload URL for Supabase
-    const { data: uploadData, error: uploadError } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabaseStorage.storage
       .from(bucketName)
       .createSignedUploadUrl(key)
 
@@ -50,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Get the public URL for the source path
-    const { data: publicUrlData } = supabase.storage.from(bucketName).getPublicUrl(key)
+    const { data: publicUrlData } = supabaseStorage.storage.from(bucketName).getPublicUrl(key)
     const sourcePath = publicUrlData.publicUrl
 
     // Save video record in Supabase

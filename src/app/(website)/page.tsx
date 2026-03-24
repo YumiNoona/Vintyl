@@ -29,13 +29,13 @@ const FeatureCard = ({ icon: Icon, title, desc, gradient }: any) => (
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ duration: 0.5 }}
-    className={`group p-8 rounded-3xl border border-white/5 bg-gradient-to-b ${gradient} hover:border-purple-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-purple-500/10`}
+    className={`group p-8 rounded-3xl border border-white/5 bg-neutral-900/50 hover:border-white/20 transition-all duration-500 hover:shadow-2xl hover:shadow-white/5`}
   >
-    <div className="w-14 h-14 rounded-2xl bg-neutral-900 border border-white/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-500">
-      <Icon size={28} className="text-purple-400" />
+    <div className="w-14 h-14 rounded-2xl bg-white border border-white/10 flex items-center justify-center mb-6 group-hover:bg-neutral-200 transition-colors duration-500">
+      <Icon size={28} className="text-black" />
     </div>
-    <h3 className="text-xl font-bold mb-3 text-neutral-100">{title}</h3>
-    <p className="text-neutral-400 text-sm leading-relaxed">{desc}</p>
+    <h3 className="text-xl font-bold mb-3 text-white">{title}</h3>
+    <p className="text-neutral-500 text-sm leading-relaxed font-medium">{desc}</p>
   </motion.div>
 );
 
@@ -54,16 +54,16 @@ export default function HomePage() {
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="space-y-8"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-purple-500/10 border border-purple-500/20">
-                <Sparkles size={16} className="text-purple-400" />
-                <span className="text-xs text-purple-400 font-bold uppercase tracking-widest">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
+                <Sparkles size={16} className="text-white" />
+                <span className="text-xs text-white font-bold uppercase tracking-widest">
                   The Future of Collaboration
                 </span>
               </div>
               
               <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter text-white">
                 Record. Share.<br />
-                <span className="bg-gradient-to-r from-purple-400 via-pink-400 to-purple-600 bg-clip-text text-transparent">
+                <span className="text-neutral-500">
                   Collaborate.
                 </span>
               </h1>
@@ -74,10 +74,10 @@ export default function HomePage() {
               </p>
 
               <div className="flex flex-wrap gap-4 pt-4">
-                <Link href="/auth/sign-up">
+                <Link href="/auth?mode=signup">
                   <Button
                     size="lg"
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-10 py-7 text-lg font-bold rounded-2xl gap-3 shadow-2xl shadow-purple-500/40 border border-purple-400/20 active:scale-95 transition-all"
+                    className="bg-white hover:bg-neutral-200 text-black px-12 py-8 text-xl font-black rounded-2xl gap-3 shadow-2xl shadow-white/10 active:scale-95 transition-all"
                   >
                     Start Free Trial
                     <ArrowRight size={20} />
@@ -87,7 +87,7 @@ export default function HomePage() {
                   size="lg"
                   variant="outline"
                   onClick={() => document.getElementById("demo")?.scrollIntoView({ behavior: 'smooth' })}
-                  className="border-white/10 bg-white/5 hover:bg-white/10 px-10 py-7 text-lg font-bold rounded-2xl gap-3 backdrop-blur-md transition-all active:scale-95"
+                  className="border-white/10 bg-transparent hover:bg-white/5 px-12 py-8 text-xl font-black rounded-2xl gap-3 backdrop-blur-md transition-all active:scale-95 text-white"
                 >
                   <Play size={20} fill="currentColor" />
                   Watch Demo
@@ -97,11 +97,11 @@ export default function HomePage() {
               <div className="flex items-center gap-6 pt-8 border-t border-white/5">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#050505] bg-neutral-800" />
+                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#050505] bg-neutral-900" />
                   ))}
                 </div>
-                <p className="text-sm text-neutral-500 font-medium italic">
-                  Joined by <span className="text-neutral-300">2,000+</span> teams this month
+                <p className="text-sm text-neutral-500 font-bold">
+                  Joined by <span className="text-white">2,400+</span> teams this month
                 </p>
               </div>
             </motion.div>
@@ -113,9 +113,9 @@ export default function HomePage() {
               className="hidden lg:block h-full min-h-[500px] relative"
             >
               <HeroVisual />
-              {/* Floating Layered Glow */}
+              {/* Floating Layered Glow - Monochrome */}
               <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-purple-500/20 blur-[120px] opacity-30 pointer-events-none -z-10"
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] bg-white/5 blur-[120px] opacity-30 pointer-events-none -z-10"
                 animate={{ 
                   y: [-20, 20, -20],
                   scale: [1, 1.1, 1]
@@ -126,19 +126,19 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Global Background Gradients (GPU friendly) */}
+        {/* Global Background Gradients (GPU friendly) - Monochrome */}
         <div className="absolute inset-0 -z-10 pointer-events-none overflow-hidden">
           <div 
-            className="absolute top-0 left-0 w-full h-full opacity-40"
+            className="absolute top-0 left-0 w-full h-full opacity-20"
             style={{
               background: `
-                radial-gradient(circle at 20% 30%, rgba(124,58,237,0.15), transparent 60%),
-                radial-gradient(circle at 80% 70%, rgba(236,72,153,0.15), transparent 60%)
+                radial-gradient(circle at 20% 30%, rgba(255,255,255,0.05), transparent 60%),
+                radial-gradient(circle at 80% 70%, rgba(255,255,255,0.05), transparent 60%)
               `
             }}
           />
-          <div className="absolute w-[500px] h-[500px] bg-purple-500/20 blur-[120px] top-[-100px] left-[20%]" />
-          <div className="absolute w-[500px] h-[500px] bg-pink-500/20 blur-[120px] bottom-[-120px] right-[10%]" />
+          <div className="absolute w-[500px] h-[500px] bg-white/5 blur-[120px] top-[-100px] left-[20%]" />
+          <div className="absolute w-[800px] h-[800px] bg-neutral-900/40 blur-[150px] bottom-[-120px] right-[10%]" />
         </div>
       </section>
 
@@ -178,10 +178,10 @@ export default function HomePage() {
       <section id="features" className="py-32 px-6 relative bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-white">
-              Everything to <span className="text-purple-500">Communicate Faster</span>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+              Everything to <span className="text-neutral-500">Communicate Faster</span>
             </h2>
-            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed">
+            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed font-medium">
               Vintyl provides the tools professional teams need for high-fidelity async communication.
             </p>
           </div>
@@ -213,17 +213,17 @@ export default function HomePage() {
       <section id="workflow" className="py-32 px-6 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-white">
-              Get Started in <span className="text-purple-500">3 Seconds</span>
+            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
+              Get Started in <span className="text-neutral-500">3 Seconds</span>
             </h2>
-            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed">
+            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed font-medium">
               Vintyl is designed for speed. No complex setup, just pure collaboration.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
              {/* Connection Line */}
-             <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-500/20 to-transparent -translate-y-1/2" />
+             <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-white/10 -translate-y-1/2" />
              
              {[
                { icon: Layout, title: "1. Create", desc: "Start a workspace and invite your team in seconds." },
@@ -238,11 +238,11 @@ export default function HomePage() {
                  transition={{ delay: i * 0.2 }}
                  className="relative z-10 flex flex-col items-center text-center space-y-6"
                >
-                 <div className="w-20 h-20 rounded-3xl bg-neutral-900 border border-white/10 flex items-center justify-center shadow-xl shadow-purple-500/5 group">
-                    <step.icon size={32} className="text-purple-400 group-hover:scale-110 transition-transform" />
+                 <div className="w-20 h-20 rounded-3xl bg-neutral-900 border border-white/10 flex items-center justify-center shadow-xl shadow-white/5 group">
+                    <step.icon size={32} className="text-white group-hover:scale-110 transition-transform" />
                  </div>
-                 <h3 className="text-2xl font-bold text-white">{step.title}</h3>
-                 <p className="text-neutral-500 text-sm max-w-[250px]">{step.desc}</p>
+                 <h3 className="text-2xl font-black text-white">{step.title}</h3>
+                 <p className="text-neutral-500 text-sm max-w-[250px] font-bold">{step.desc}</p>
                </motion.div>
              ))}
           </div>
@@ -253,8 +253,8 @@ export default function HomePage() {
       <section id="faq" className="py-32 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-black text-white mb-4">Frequently Asked Questions</h2>
-            <p className="text-neutral-500">Everything you need to know about Vintyl.</p>
+            <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Frequently Asked Questions</h2>
+            <p className="text-neutral-500 font-bold">Everything you need to know about Vintyl.</p>
           </div>
 
           <div className="space-y-4">
@@ -268,13 +268,13 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="p-6 rounded-2xl border border-white/5 bg-neutral-900/30 space-y-3"
+                className="p-6 rounded-2xl border border-white/5 bg-neutral-900/30 space-y-3 hover:border-white/10 transition-colors"
               >
-                <h4 className="flex items-center gap-3 text-lg font-bold text-white">
-                  <HelpCircle size={20} className="text-purple-500" />
+                <h4 className="flex items-center gap-3 text-lg font-black text-white">
+                  <HelpCircle size={20} className="text-white" />
                   {faq.q}
                 </h4>
-                <p className="text-neutral-500 pl-8 leading-relaxed">
+                <p className="text-neutral-500 pl-8 leading-relaxed font-medium">
                   {faq.a}
                 </p>
               </motion.div>
@@ -286,12 +286,12 @@ export default function HomePage() {
       {/* AI Section (Restored) */}
       <section id="ai" className="py-32 px-6">
         <div className="max-w-7xl mx-auto bg-neutral-900/40 rounded-[3rem] border border-white/5 p-12 lg:p-20 overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-purple-600/5 blur-[100px] rounded-full" />
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 blur-[100px] rounded-full" />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="space-y-8 relative z-10">
-              <h2 className="text-4xl md:text-5xl font-black text-white leading-tight">
-                AI that <span className="text-purple-400">Contextualizes</span> Everything.
+              <h2 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter">
+                AI that <span className="text-neutral-400">Contextualizes</span> Everything.
               </h2>
               <ul className="space-y-6">
                 {[
@@ -299,20 +299,20 @@ export default function HomePage() {
                   "Searchable AI transcriptions",
                   "Actionable highlights from discussions"
                 ].map((item, i) => (
-                  <li key={i} className="flex gap-4 items-center text-neutral-300 text-lg">
-                    <CheckCircle2 className="text-purple-500 shrink-0" />
+                  <li key={i} className="flex gap-4 items-center text-neutral-400 text-lg font-bold">
+                    <CheckCircle2 size={24} className="text-white shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <Button className="bg-white text-black hover:bg-neutral-200 rounded-2xl px-8 py-6 font-bold text-base shadow-xl active:scale-95 transition-all">
+              <Button className="bg-white text-black hover:bg-neutral-200 rounded-2xl px-10 py-7 font-black text-lg shadow-xl active:scale-95 transition-all">
                 Learn about Vintyl AI
               </Button>
             </div>
             
             <div className="relative">
-               <div className="aspect-square bg-gradient-to-br from-purple-600/20 to-pink-600/5 rounded-3xl border border-white/5 flex items-center justify-center">
-                  <Sparkles size={120} className="text-purple-500/30 animate-pulse" />
+               <div className="aspect-square bg-white/5 rounded-3xl border border-white/5 flex items-center justify-center">
+                  <Sparkles size={120} className="text-white/10 animate-pulse" />
                </div>
             </div>
           </div>
@@ -322,14 +322,14 @@ export default function HomePage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-32 px-6">
         <div className="max-w-7xl mx-auto text-center mb-20 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black text-white">Simple Pricing</h2>
-          <p className="text-neutral-500 max-w-xl mx-auto">Start for free, upgrade as your team grows.</p>
+          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Simple Pricing</h2>
+          <p className="text-neutral-500 max-w-xl mx-auto font-bold">Start for free, upgrade as your team grows.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
           {[
             { name: "Personal", price: "0", features: ["1 Workspace", "25 Videos", "720p Quality", "Basic AI"], color: "white" },
-            { name: "Pro", price: "99", features: ["Unlimited Workspaces", "Unlimited Videos", "4K Quality", "Advanced AI Support", "Custom Branding"], color: "purple", popular: true },
+            { name: "Pro", price: "99", features: ["Unlimited Workspaces", "Unlimited Videos", "4K Quality", "Advanced AI Support", "Custom Branding"], popularity: true },
             { name: "Team", price: "249", features: ["SSO Support", "Custom Security", "Shared Library", "Dedicated Support", "Admin Console"], color: "white" }
           ].map((plan, i) => (
             <motion.div
@@ -337,36 +337,36 @@ export default function HomePage() {
               initial={{ opacity: 0, y: 40 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              whileHover={{ y: -10, scale: plan.popular ? 1.07 : 1.02 }}
+              whileHover={{ y: -10, scale: plan.popularity ? 1.05 : 1.02 }}
               className={`p-10 rounded-[2.5rem] border ${
-                plan.popular 
-                  ? 'border-purple-500/40 bg-gradient-to-br from-purple-500/10 to-transparent shadow-2xl shadow-purple-500/20 scale-105 z-20' 
-                  : 'border-white/5 bg-neutral-900/50 grayscale hover:grayscale-0'
-              } relative transition-all duration-500 group`}
+                plan.popularity 
+                  ? 'border-white/20 bg-white/5 shadow-2xl shadow-white/5 scale-105 z-20' 
+                  : 'border-white/5 bg-neutral-900/50'
+              } relative transition-all duration-500 group overflow-hidden`}
             >
-              {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] uppercase font-black tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+              {plan.popularity && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] uppercase font-black tracking-widest px-6 py-2 rounded-full shadow-lg">
                   Most Popular
                 </div>
               )}
-              <h3 className="text-2xl font-bold mb-2 text-white">{plan.name}</h3>
+              <h3 className="text-2xl font-black mb-2 text-white">{plan.name}</h3>
               <div className="flex items-end gap-1 mb-8">
                 <span className="text-5xl font-black text-white">${plan.price}</span>
-                <span className="text-neutral-500 font-medium pb-2">/mo</span>
+                <span className="text-neutral-500 font-bold pb-2">/mo</span>
               </div>
               <ul className="space-y-4 text-left mb-10">
                 {plan.features.map((f, j) => (
-                  <li key={j} className="flex gap-3 text-sm text-neutral-300 font-medium">
-                    <CheckCircle2 size={18} className={plan.popular ? "text-purple-400" : "text-neutral-600"} />
+                  <li key={j} className="flex gap-3 text-sm text-neutral-400 font-bold">
+                    <CheckCircle2 size={18} className="text-white" />
                     {f}
                   </li>
                 ))}
               </ul>
               <Button 
-                className={`w-full py-7 rounded-2xl font-bold text-lg shadow-lg active:scale-95 transition-all ${
-                  plan.popular 
-                    ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20' 
-                    : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/5'
+                className={`w-full py-7 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all ${
+                  plan.popularity 
+                    ? 'bg-white hover:bg-neutral-200 text-black shadow-white/10' 
+                    : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
                 }`}
               >
                 Pick Plan

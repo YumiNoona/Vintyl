@@ -38,23 +38,23 @@ export default async function MembersPage({
         {membersData.status === 200 && membersData.data && (
           <>
             {/* Owner */}
-            <div className="p-8 rounded-[2.5rem] border-2 border-purple-500/30 bg-purple-500/5 backdrop-blur-sm relative group shadow-lg shadow-purple-500/5">
-              <div className="absolute top-6 right-6 bg-purple-600 dark:bg-purple-500 text-white dark:text-background text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 shadow-md">
+            <div className="p-8 rounded-[2.5rem] border-2 border-white/10 bg-white/5 backdrop-blur-sm relative group shadow-2xl shadow-white/5">
+              <div className="absolute top-6 right-6 bg-white text-black text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1.5 shadow-md">
                 <ShieldCheck size={12} strokeWidth={3} />
                 Owner
               </div>
               <div className="flex items-center gap-5">
-                <Avatar className="size-16 border-2 border-purple-500/30 shadow-inner">
+                <Avatar className="size-16 border-2 border-white/10 shadow-inner">
                   <AvatarImage src={membersData.data.user?.image || ""} />
-                  <AvatarFallback className="bg-secondary text-foreground font-bold">
+                  <AvatarFallback className="bg-neutral-900 text-white font-black">
                     {membersData.data.user?.firstName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-bold text-foreground text-lg">
+                  <h3 className="font-bold text-white text-lg">
                     {membersData.data.user?.firstName} {membersData.data.user?.lastName}
                   </h3>
-                  <p className="text-sm text-muted-foreground font-medium truncate max-w-[150px]">
+                  <p className="text-sm text-neutral-500 font-medium truncate max-w-[150px]">
                     {membersData.data.user?.email}
                   </p>
                 </div>
@@ -90,12 +90,12 @@ export default async function MembersPage({
       </div>
 
       {membersData.status === 200 && !membersData.data?.members?.length && (
-        <div className="flex flex-col items-center justify-center py-32 text-muted-foreground bg-secondary/10 border-2 border-dashed border-border rounded-[4rem]">
-          <div className="bg-secondary p-8 rounded-full mb-8 ring-1 ring-border shadow-inner">
-            <Users size={64} className="opacity-20 text-foreground" strokeWidth={1} />
+        <div className="flex flex-col items-center justify-center py-32 text-neutral-500 bg-white/[0.02] border-2 border-dashed border-white/5 rounded-[4rem]">
+          <div className="bg-white/5 p-8 rounded-full mb-8 ring-1 ring-white/10 shadow-inner">
+            <Users size={64} className="opacity-20 text-white" strokeWidth={1} />
           </div>
-          <p className="text-2xl font-black text-foreground">Build your team</p>
-          <p className="text-sm mt-3 font-medium max-w-xs text-center opacity-80">
+          <p className="text-2xl font-black text-white">Build your team</p>
+          <p className="text-sm mt-3 font-medium max-w-xs text-center opacity-60">
             Invite your team members to start collaborating asynchronously with video.
           </p>
         </div>

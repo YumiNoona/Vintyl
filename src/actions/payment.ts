@@ -1,11 +1,12 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 
 export const getSubscription = async () => {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401, data: null };
@@ -32,6 +33,7 @@ export const getSubscription = async () => {
 
 export const createCheckoutSession = async (plan: "PRO" | "TEAM") => {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401, data: null };

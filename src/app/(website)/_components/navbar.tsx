@@ -8,12 +8,13 @@ export default function LandingPageNavbar() {
   return (
     <nav className="sticky top-0 z-50 flex w-full justify-between items-center px-8 py-6 backdrop-blur-xl border-b border-white/5 bg-black/60">
       <div className="text-3xl font-bold flex items-center gap-x-3 group cursor-pointer">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center group-hover:rotate-6 transition-transform">
+        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-white/10 group-hover:bg-neutral-200 transition-colors">
           <Image
             alt="logo"
             src="/vintyl-logo.svg"
             width={24}
             height={24}
+            className="invert"
           />
         </div>
         <p className="tracking-tighter">Vintyl</p>
@@ -30,13 +31,13 @@ export default function LandingPageNavbar() {
       </div>
 
       <div className="flex gap-4">
-        <Link href="/auth/sign-in">
-          <Button variant="ghost" className="text-neutral-300 hover:text-white hover:bg-white/5 px-6">
+        <Link href="/auth?mode=signin">
+          <Button variant="ghost" className="text-neutral-400 hover:text-white hover:bg-white/5 px-6 font-semibold">
             Login
           </Button>
         </Link>
-        <Link href="/auth/sign-up">
-          <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl px-6 shadow-lg shadow-purple-500/20 transition-all active:scale-95">
+        <Link href="/auth?mode=signup">
+          <Button className="bg-white hover:bg-neutral-200 text-black rounded-xl px-8 font-bold shadow-xl shadow-white/5 transition-all active:scale-95">
             Start Free Trial
           </Button>
         </Link>

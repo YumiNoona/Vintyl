@@ -1,6 +1,6 @@
 # 🪐 Vintyl — AI-Powered Video Sharing Platform
 
-Vintyl is a high-performance async video communication platform, now powered entirely by **Supabase** for Auth, Database, and Storage.
+Vintyl is a high-performance async video communication platform, powered by **Supabase** (Auth, Database, Storage) and **Google Gemini AI**.
 
 - **Live Web**: [https://vintyl.venusapp.in/](https://vintyl.venusapp.in/)
 - **Webhook**: [https://vintyl.venusapp.in/api/payment/webhook](https://vintyl.venusapp.in/api/payment/webhook)
@@ -17,23 +17,21 @@ Vintyl is a high-performance async video communication platform, now powered ent
 ## ✨ Features
 
 ### Core Platform
-- **Screen Recording** — Captures screen/audio and streams to the cloud in real-time.
-- **Video Library** — Organize videos into workspaces and folders.
-- **Video Preview** — Rich preview page with view tracking, sharing, and comments.
-- **Workspace Collaboration** — Invite team members and manage permissions.
+- **High-Performance Recording** — Capture screen and audio with the Electron desktop app.
+- **Real-time Streaming** — Video chunks are streamed directly to the Express processing server with backpressure handling for maximum stability.
+- **Video Library** — Organize recordings into workspaces and folders with real-time scalar aggregations (`videoCount`).
+- **Rich Previews** — Beautiful preview pages with view tracking, sharing controls, and nested comments.
+- **Workspace Collaboration** — Invite team members with secure invitation flows and workspace-scoped RLS.
 
-### AI-Powered
-- **Auto Transcription** — Google Gemini 1.5 Flash converts speech to text.
-- **AI Summarization** — Generates titles and summaries for every video automatically.
-- **Interactive Insights** — AI-generated content helps users understand recordings at a glance.
+### AI-Powered (Gemini 1.5 Flash)
+- **Auto Transcription** — Conversational speech-to-text conversion for every recording.
+- **AI Summarization** — Automated generation of descriptive titles and concise summaries.
+- **Processing Status** — Real-time feedback on AI enrichment progress.
 
-### Desktop App Linking
-- **Unified Identity** — Link your desktop recorder to your web account using your unique **User ID**.
-- **Real-time Streaming** — Desktop recordings are processed by the Express server and stored in Supabase.
-
-### Monetization
-- **3-Tier Pricing** — Free, Pro, and Team plans.
-- **Stripe Integration** — Secure checkout sessions and billing portal.
+### Security & Scalability
+- **Unified Identity** — Secure JWT-based authentication across web and desktop.
+- **Optimized RLS** — High-performance Row Level Security using `EXISTS` patterns and composite indexing.
+- **Memory-Safe Processing** — Buffer-free streaming to disk prevents memory bloat during large uploads.
 
 ---
 
@@ -41,14 +39,16 @@ Vintyl is a high-performance async video communication platform, now powered ent
 
 ```mermaid
 graph TD
-    A[Electron Desktop App] -->|Socket.IO| B[Express Processing Server]
+    A[Electron Desktop App] -->|Socket.IO Streams| B[Express Processing Server]
+    B -->|Stream to Disk| B
     B -->|Upload| C[Supabase Storage]
     B -->|AI Request| D[Gemini 1.5 Flash]
     D -->|JSON Metadata| B
     B -->|Update DB| E[Supabase / Postgres]
-    F[Next.js Dashboard] -->|Read| E
+    F[Next.js Dashboard] -->|Optimized Queries| E
     F -->|Playback| C
     F -->|Auth| G[Supabase Auth]
+    B -->|Verify Session| G
 ```
 
 ---
@@ -63,7 +63,7 @@ npm install
 ```
 
 ### 2. Environment Configuration
-Create a `.env` file in the root directory. Use `.env.example` as a template.
+Create a `.env` file in the root directory.
 Key variables required:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -72,7 +72,11 @@ Key variables required:
 - `STRIPE_SECRET_KEY`
 
 ### 3. Database Setup
-The database schema is managed directly in Supabase. Apply the `DBSchema.sql` to your Supabase SQL Editor to initialize the tables and the `handle_new_user` trigger.
+Apply `FullDatabaseSchema.sql` to your Supabase SQL Editor. This initializes:
+- Optimized tables with composite indexes.
+- Provisioning triggers for new users.
+- `update_video_count` triggers for high-performance aggregations.
+- `Member`-based RLS policies for multi-tenant isolation.
 
 ### 4. Run the Platform
 
@@ -101,10 +105,10 @@ npm start
 
 | Layer | Technology |
 |---|---|
-| **Frontend** | Next.js 16, React Query, Tailwind CSS, ShadCN UI |
-| **Backend** | Express.js, Socket.IO |
-| **Auth** | Supabase Auth (Unified across Web & Desktop) |
-| **Database** | Supabase (Postgres) |
+| **Frontend** | Next.js 16, React Query, Lucide Icons, ShadCN UI |
+| **Backend** | Express.js, Socket.IO (with Backpressure) |
+| **Auth** | Supabase Auth (Shared JWT Token logic) |
+| **Database** | Supabase (Postgres with Scalar Triggers) |
 | **Storage** | Supabase Storage (`vintyl-videos` bucket) |
 | **AI** | Google Gemini 1.5 Flash |
 | **Desktop** | Electron (Desktop Media Capture) |
@@ -117,15 +121,15 @@ npm start
 ```
 Vintyl/
 ├── src/
-│   ├── actions/        # Server actions (Auth, AI, Video, Workspace)
-│   ├── app/            # Next.js app router pages
-│   ├── components/     # UI components (Global, Dash, Auth)
-│   ├── hooks/          # Custom React hooks
+│   ├── actions/        # Server actions (Optimized queries, Auth sync)
+│   ├── app/            # Next.js app router (Dashboard, Preview, Billing)
+│   ├── components/     # UI components (Global, Dash, Recording)
+│   ├── hooks/          # Custom hooks (Mutation data, Query data)
 │   └── lib/            # Utilities (Supabase, Stripe, Gemini)
-├── express-server/     # Express + Socket.IO processing server
+├── express-server/     # Express + Socket.IO stream processing
 ├── desktop/            # Electron desktop recorder
-├── public/             # Static assets
-└── DBSchema.sql        # Supabase SQL initialization script
+├── public/             # Static assets (Logos, Icons)
+└── FullDatabaseSchema.sql # Optimized Supabase SQL initialization
 ```
 
 ---

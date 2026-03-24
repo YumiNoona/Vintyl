@@ -1,4 +1,4 @@
-import { Plan } from "@/generated/prisma";
+export type Plan = 'FREE' | 'STANDARD' | 'PRO' | 'TEAM' | 'ENTERPRISE';
 
 export type WorkspaceProps = {
   data: {
@@ -40,9 +40,7 @@ export type FolderProps = {
     id: string;
     name: string;
     createdAt: Date;
-    _count: {
-      videos: number;
-    };
+    videoCount: number;
   }[];
 };
 

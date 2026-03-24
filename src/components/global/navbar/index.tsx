@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useQueryData } from "@/hooks/useQueryData";
-import { getNotifications } from "@/actions/user";
+import { getNotifications, getUserProfile } from "@/actions/user";
 import { Bell, MonitorUp, Download, Plus, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Modal from "@/components/global/modal";
@@ -23,15 +23,8 @@ type DashboardNavbarProps = {
 
 function SupabaseUserButton() {
   const router = useRouter();
-  const [initial, setInitial] = useState("?");
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      const email = data.user?.email || "";
-      setInitial(email.charAt(0).toUpperCase() || "U");
-    });
-  }, []);
+  const { data: profileData } = useQueryData(["user-profile"], getUserProfile);
+  const user = (profileData as any)?.data;
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -39,22 +32,29 @@ function SupabaseUserButton() {
     router.push("/auth");
   };
 
+  const initial = user?.firstName?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || "?";
+
   return (
     <div className="relative group">
       <button
         onClick={handleSignOut}
-        className="w-8 h-8 rounded-full bg-purple-600 text-white text-sm font-bold flex items-center justify-center hover:bg-purple-700 transition-colors"
-        title="Sign out"
+        className="w-10 h-10 rounded-full border-2 border-white/10 bg-neutral-900 overflow-hidden flex items-center justify-center hover:border-white transition-all shadow-sm active:scale-95"
+        title={`Sign out (${user?.email || ""})`}
       >
-        {initial}
+        {user?.image ? (
+          <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
+        ) : (
+          <span className="text-white text-sm font-bold">{initial}</span>
+        )}
       </button>
-      <div className="absolute right-0 top-10 hidden group-hover:flex items-center gap-1.5 bg-popover border border-border rounded-lg px-3 py-2 text-xs text-muted-foreground whitespace-nowrap shadow-lg z-50">
+      <div className="absolute right-0 top-12 hidden group-hover:flex items-center gap-1.5 bg-neutral-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-neutral-400 whitespace-nowrap shadow-xl z-50">
         <LogOut size={12} />
         Sign out
       </div>
     </div>
   );
 }
+
 
 export default function DashboardNavbar({
   workspaceId,
@@ -102,23 +102,23 @@ export default function DashboardNavbar({
         >
           {({ setOpen }: { setOpen: (open: boolean) => void }) => (
             <div className="flex flex-col gap-5 mt-6">
-              <div className="group border border-purple-500/20 rounded-2xl p-6 flex flex-col gap-4 bg-purple-500/5 transition-all hover:bg-purple-500/10 hover:border-purple-500/40 shadow-sm">
+              <div className="group border border-white/10 rounded-2xl p-6 flex flex-col gap-4 bg-white/5 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1.5">
-                    <h4 className="font-bold text-foreground text-lg tracking-tight">Desktop Recorder</h4>
-                    <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Recommended</p>
+                    <h4 className="font-bold text-white text-lg tracking-tight uppercase">Desktop Recorder</h4>
+                    <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest opacity-70">Recommended</p>
                   </div>
-                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600">
+                  <div className="p-2 rounded-xl bg-white/5 text-white">
                     <MonitorUp size={20} />
                   </div>
                 </div>
-                <ul className="text-sm text-muted-foreground/80 space-y-2">
+                <ul className="text-xs text-neutral-400 space-y-2 font-bold uppercase tracking-wider">
                   <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-purple-500" />
+                    <div className="size-1 rounded-full bg-white" />
                     Full screen & camera recording
                   </li>
                   <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-purple-500" />
+                    <div className="size-1 rounded-full bg-white" />
                     System audio capture
                   </li>
                 </ul>
@@ -127,7 +127,7 @@ export default function DashboardNavbar({
                     setOpen(false);
                     handleOpenDesktopApp();
                   }}
-                  className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white h-12 rounded-xl font-bold mt-2 shadow-lg shadow-purple-500/20 active:scale-95 transition-all"
+                  className="w-full gap-2 bg-white hover:bg-neutral-200 text-black h-12 rounded-xl font-black mt-2 shadow-xl shadow-white/5 active:scale-95 transition-all uppercase tracking-tight"
                 >
                   <Download size={18} />
                   Get Desktop App

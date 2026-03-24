@@ -26,14 +26,14 @@ export default function SidebarItem({
       <Link
         href={href}
         className={cn(
-          "flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200",
+          "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 group",
           isActive
-            ? "bg-purple-600/10 dark:bg-purple-500/20 border-l-2 border-purple-500 text-purple-700 dark:text-white"
-            : "hover:bg-sidebar-accent text-muted-foreground hover:text-foreground hover:translate-x-1"
+            ? "bg-white/5 border-l-2 border-white text-white font-bold"
+            : "text-neutral-400 hover:bg-white/5 hover:text-white hover:translate-x-1"
         )}
       >
-        <Icon size={20} />
-        <span className="font-medium">{title}</span>
+        <Icon size={18} className={cn("transition-transform group-hover:scale-110", isActive ? "text-white" : "text-neutral-500 group-hover:text-white")} />
+        <span className="text-xs uppercase tracking-widest font-bold">{title}</span>
       </Link>
     </li>
   );

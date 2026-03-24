@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { supabaseAdmin } from "@/lib/supabase/admin";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
@@ -11,6 +11,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
  */
 export const transcribeVideo = async (videoId: string) => {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const { data: video, error: fetchError } = await supabaseAdmin
       .from("Video")
       .select("source, transcript")
@@ -64,6 +65,7 @@ export const transcribeVideo = async (videoId: string) => {
  */
 export const generateVideoSummary = async (videoId: string) => {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return { status: 400, data: "Gemini API Key is missing. Please add your key to the .env file." };
@@ -119,6 +121,7 @@ Respond in JSON format: { "title": "...", "summary": "..." }`;
  */
 export const processVideoWithAI = async (videoId: string) => {
   try {
+    const supabaseAdmin = getSupabaseAdmin();
     // Step 0: Check User Subscription & Trial Status
     const { data: video, error: fetchError } = await supabaseAdmin
       .from("Video")
@@ -175,4 +178,3 @@ export const processVideoWithAI = async (videoId: string) => {
     return { status: 500, data: "Processing failed" };
   }
 };
-

@@ -78,12 +78,12 @@ export default function VideoCard({
         <div 
           draggable
           onDragStart={handleDragStart}
-          className="group overflow-hidden cursor-pointer bg-card/40 relative border-2 border-border flex flex-col rounded-2xl hover:scale-[1.02] hover:border-purple-500/50 hover:shadow-2xl hover:shadow-purple-500/10 transition-all duration-500 ease-out"
+          className="group overflow-hidden cursor-pointer bg-neutral-900/40 relative border-2 border-white/5 flex flex-col rounded-3xl hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 transition-all duration-500 ease-out"
         >
           {processing && (
-            <div className="absolute inset-0 z-20 bg-background/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-pulse">
-              <div className="w-10 h-10 rounded-full border-t-2 border-purple-500 animate-spin" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-purple-500">Processing...</p>
+            <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-pulse">
+              <div className="w-10 h-10 rounded-full border-t-2 border-white animate-spin" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-white">Processing...</p>
             </div>
           )}
           <div className="absolute top-2 right-2 z-30 gap-x-3 hidden group-hover:flex">
@@ -104,10 +104,10 @@ export default function VideoCard({
         <Link href={`/preview/${id}`} className="flex flex-col">
           <div className="h-44 w-full overflow-hidden relative group-hover:opacity-95 transition-opacity">
             {/* Thumbnail Placeholder */}
-            <div className="absolute inset-0 bg-gradient-to-br from-secondary to-muted mix-blend-overlay" />
+            <div className="absolute inset-0 bg-neutral-900" />
             <div className="absolute inset-0 flex items-center justify-center">
-               <div className="bg-white/10 backdrop-blur-md p-3 rounded-full border border-white/20 shadow-xl group-hover:scale-110 transition-transform duration-300">
-                 <Play className="text-white fill-white ml-1" size={20} />
+               <div className="bg-white/5 backdrop-blur-xl p-4 rounded-full border border-white/10 shadow-2xl group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
+                 <Play className="text-white fill-white ml-1" size={24} />
                </div>
             </div>
             <div className="absolute bottom-2 right-2 z-10 px-2 py-1 bg-card/70 backdrop-blur-sm rounded-md text-[10px] font-medium text-foreground">
@@ -115,7 +115,7 @@ export default function VideoCard({
             </div>
           </div>
           <div className="px-5 py-4 flex flex-col gap-3 bg-gradient-to-b from-transparent to-secondary/10">
-            <h2 className="text-sm font-bold text-foreground line-clamp-1 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+            <h2 className="text-sm font-black text-white line-clamp-1 group-hover:translate-x-1 transition-transform">
               {title || "Untitled Video"}
             </h2>
           <div className="flex gap-x-2 items-center">
@@ -140,8 +140,8 @@ export default function VideoCard({
       </Link>
     </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-popover border-border backdrop-blur-2xl shadow-2xl rounded-2xl p-2 focus:outline-none animate-in fade-in zoom-in-95 duration-200">
-        <ContextMenuItem className="cursor-pointer hover:bg-secondary p-2.5 text-sm font-medium text-foreground rounded-xl transition-colors">
+      <ContextMenuContent className="w-56 bg-neutral-900 border-white/10 text-white backdrop-blur-3xl shadow-3xl rounded-2xl p-2 focus:outline-none animate-in fade-in zoom-in-95 duration-200">
+        <ContextMenuItem className="cursor-pointer hover:bg-white/5 p-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors">
           <Link href={`/preview/${id}`} className="w-full">
             Open video
           </Link>

@@ -21,9 +21,9 @@ const closeBtn = document.getElementById("close-btn");
 
 // Account UI
 const linkBtn = document.getElementById("link-btn");
-const linkContainer = document.getElementById("link-input-container");
-const userIdInput = document.getElementById("user-id-input");
-const saveUserIdBtn = document.getElementById("save-user-id");
+const unlinkBtn = document.getElementById("unlink-btn");
+const accountStatus = document.getElementById("account-status");
+const accountInfo = document.getElementById("account-info");
 const userDisplay = document.getElementById("user-display");
 const planBadge = document.getElementById("plan-badge");
 
@@ -35,25 +35,60 @@ let seconds = 0;
 let socket = null;
 let currentFilename = "";
 let userPlan = "FREE";
-let currentUserId = localStorage.getItem("vintyl_user_id") || "";
+let authToken = null;
+let userId = null;
+let pendingChunks = 0; // track in-flight async reads
 
 // ===== Initialize =====
-if (currentUserId) {
-  userDisplay.textContent = "Linked Account";
-  userIdInput.value = currentUserId;
+async function initAuth() {
+  authToken = await window.electronAPI.getToken();
+  userId = await window.electronAPI.getUserId();
+  
+  updateAuthUI();
+  if (authToken) {
+    connectSocket();
+  }
 }
+
+function updateAuthUI() {
+  if (authToken) {
+    userDisplay.textContent = "Linked Account";
+    linkBtn.style.display = "none";
+    accountInfo.style.display = "flex";
+  } else {
+    userDisplay.textContent = "Not Linked";
+    linkBtn.style.display = "block";
+    accountInfo.style.display = "none";
+    planBadge.style.display = "none";
+  }
+}
+
+initAuth();
 
 // ===== Socket.IO Connection =====
 function connectSocket() {
-  socket = io(SOCKET_URL);
+  if (!authToken) return;
+
+  if (socket) {
+    socket.disconnect();
+  }
+
+  socket = io(SOCKET_URL, {
+    auth: { token: `Bearer ${authToken}` }, // Standardized Bearer format
+  });
 
   socket.on("connect", () => {
     statusDot.className = "status-dot connected";
     statusText.textContent = "Connected to server";
-    
-    // Fetch plan on connect if linked
-    if (currentUserId) {
-      socket.emit("start-recording", { userId: currentUserId });
+    updateAuthUI();
+  });
+
+  socket.on("connect_error", (err) => {
+    statusDot.className = "status-dot disconnected";
+    statusText.textContent = `Auth error: ${err.message}`;
+    if (err.message.includes("auth") || err.message.includes("token")) {
+      // Token might be expired
+      unlinkAccount();
     }
   });
 
@@ -64,15 +99,12 @@ function connectSocket() {
 
   socket.on("user-info", (data) => {
     userPlan = data.plan;
-    console.log("Plan updated:", userPlan);
+    const email = data.email || "Linked";
+    document.querySelector(".user-email").textContent = email;
     planBadge.textContent = userPlan;
     planBadge.className = `badge ${userPlan.toLowerCase()}`;
-    
-    if (userPlan === "FREE") {
-      statusText.textContent = "Free Plan: 5m / 720p limit";
-    } else {
-      statusText.textContent = "Premium: 1080p enabled";
-    }
+    planBadge.style.display = "inline-block";
+    statusText.textContent = userPlan === "FREE" ? "Free Plan: 5m / 720p limit" : "Premium: 1080p enabled";
   });
 
   socket.on("processing-status", (data) => {
@@ -80,26 +112,42 @@ function connectSocket() {
   });
 }
 
-connectSocket();
+if (currentToken) {
+  connectSocket();
+}
 
 // ===== Account Linking Logic =====
 linkBtn.addEventListener("click", () => {
-  linkContainer.style.display = linkContainer.style.display === "none" ? "block" : "none";
+  // Open browser for auth
+  const authUrl = "http://localhost:3000/desktop-auth"; 
+  window.open(authUrl, "_blank");
 });
 
-saveUserIdBtn.addEventListener("click", () => {
-  const newId = userIdInput.value.trim();
-  if (newId) {
-    currentUserId = newId;
-    localStorage.setItem("vintyl_user_id", newId);
-    userDisplay.textContent = "Linked Account";
-    linkContainer.style.display = "none";
-    
-    // Refetch plan
-    if (socket?.connected) {
-      socket.emit("start-recording", { userId: currentUserId });
-    }
-  }
+async function unlinkAccount() {
+  authToken = null;
+  userId = null;
+  await window.electronAPI.deleteAuth();
+  if (socket) socket.disconnect();
+  updateAuthUI();
+  statusText.textContent = "Account unlinked";
+}
+
+unlinkBtn.addEventListener("click", unlinkAccount);
+
+// Listen for token from deep link (via main -> preload -> here)
+window.electronAPI.onAuthSuccess(async (data) => {
+  console.log("Received auth success via deep link");
+  const { token, userId: id } = data;
+  
+  authToken = token;
+  userId = id;
+  
+  await window.electronAPI.setToken(token);
+  await window.electronAPI.setUserId(id);
+  
+  connectSocket();
+  updateAuthUI();
+  statusText.textContent = "Account linked successfully";
 });
 
 // ===== Window Controls =====
@@ -175,12 +223,13 @@ sourceSelect.addEventListener("change", async () => {
 // ===== Recording =====
 async function startRecording() {
   if (!stream) return;
-  if (!currentUserId) {
+  if (!authToken) {
     statusText.textContent = "⚠️ Please link account first";
     return;
   }
 
   currentFilename = `recording-${Date.now()}.webm`;
+  pendingChunks = 0;
 
   try {
     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -189,49 +238,63 @@ async function startRecording() {
     console.log("Mic access denied or unavailable");
   }
 
-  mediaRecorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp9" });
+  // Low bitrate to prevent frame drops and memory pressure
+  mediaRecorder = new MediaRecorder(stream, {
+    mimeType: "video/webm;codecs=vp8",
+    videoBitsPerSecond: 1_000_000, // 1 Mbps
+  });
 
   mediaRecorder.ondataavailable = (event) => {
     if (event.data.size > 0 && socket?.connected) {
+      pendingChunks++;
       const reader = new FileReader();
       reader.onload = () => {
         socket.emit("video-chunks", {
           chunks: reader.result,
           filename: currentFilename,
-          userId: currentUserId,
         });
+        pendingChunks--;
+        // If recorder stopped and this was last chunk, signal server
+        if (mediaRecorder.state === "inactive" && pendingChunks === 0) {
+          socket.emit("process-video", { filename: currentFilename });
+        }
       };
       reader.readAsArrayBuffer(event.data);
     }
   };
 
-  mediaRecorder.onstop = async () => {
+  mediaRecorder.onstop = () => {
     statusText.textContent = "Processing...";
     startBtn.disabled = true;
 
-    if (socket?.connected) {
-      socket.emit("process-video", {
-        filename: currentFilename,
-        userId: currentUserId,
-      });
-    }
+    // Wait for any in-flight FileReader callbacks to finish
+    const waitAndSend = () => {
+      if (pendingChunks > 0) {
+        setTimeout(waitAndSend, 100);
+        return;
+      }
+      if (socket?.connected) {
+        socket.emit("process-video", { filename: currentFilename });
+      }
+    };
+    waitAndSend();
 
-    socket.on("processing-complete", () => {
+    socket.once("processing-complete", () => {
       statusText.textContent = "Done! Video saved.";
       setTimeout(resetUI, 3000);
     });
 
-    socket.on("error", (err) => {
+    socket.once("error", (err) => {
       statusText.textContent = `Error: ${err.message}`;
       setTimeout(resetUI, 5000);
     });
   };
 
+  // 1s chunks ~ balanced between latency and throughput
   mediaRecorder.start(1000);
 
-  // Notify server to verify state
   if (socket?.connected) {
-    socket.emit("start-recording", { userId: currentUserId });
+    socket.emit("start-recording");
   }
 
   startBtn.style.display = "none";
