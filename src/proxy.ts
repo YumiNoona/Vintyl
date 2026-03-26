@@ -4,7 +4,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function proxy(request: NextRequest) {
   try {
     // Basic health check for Supabase config to prevent 500s
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL && !process.env.SUPABASE_URL) {
       return NextResponse.next()
     }
     return await updateSession(request)
