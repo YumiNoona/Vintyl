@@ -1,16 +1,11 @@
-"use client";
-
 import Link from "next/link";
 import React from "react";
-import { useSearchParams } from "next/navigation";
 
 export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const searchParams = useSearchParams();
-  const mode = searchParams.get("mode") || "signin";
 
   return (
     <div className="min-h-screen flex flex-col bg-[#050505]">

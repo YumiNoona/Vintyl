@@ -13,7 +13,7 @@ export default async function AuthCallbackPage({
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (error) {
-      console.error("❌ CALLBACK ERROR:", error.message);
+      console.error("❌ Auth callback error:", error.message);
       return redirect("/auth?error=" + encodeURIComponent(error.message));
     }
   }
@@ -22,12 +22,8 @@ export default async function AuthCallbackPage({
 
   if (auth.status === 200 || auth.status === 201) {
     const workspaceId = auth.user?.workspace?.[0]?.id;
-    if (workspaceId) {
-      return redirect(`/dashboard/${workspaceId}`);
-    }
-    return redirect("/dashboard");
+    return redirect(workspaceId ? `/dashboard/${workspaceId}` : "/dashboard");
   }
 
-  console.log("⚠️ Auth failed, redirecting to sign-in. Status:", auth.status);
   return redirect("/auth");
 }
