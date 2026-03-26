@@ -81,23 +81,27 @@ export const onAuthenticatedUser = cache(async () => {
       return { status: 200, user: { ...userExists, workspace: workspaces } };
     }
 
-    console.log("❓ onAuthenticatedUser: No record in public.User table. Attempting manual sync fallback with system client.");
-    // Manual sync fallback: Create the user using system client to bypass RLS
-    // We also ensure Workspace and Subscription exist to prevent dashboard crashes
+    console.log("❓ onAuthenticatedUser: No record found. Attempting manual sync with payload:", {
+      supabaseId: user.id,
+      email: user.email,
+      firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || "",
+      lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || ""
+    });
+
     const { data: newUser, error: createError } = await systemSupabase
       .from("User")
       .insert({
         supabaseId: user.id,
         email: user.email,
-        firstName: user.user_metadata?.first_name || "",
-        lastName: user.user_metadata?.last_name || "",
+        firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || "",
+        lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || "",
         image: user.user_metadata?.avatar_url || ""
       })
       .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
       .single();
 
     if (newUser && !createError) {
-      console.log("✅ onAuthenticatedUser: Manually created user record (Bypassed RLS)");
+      console.log("✅ onAuthenticatedUser: Manually created user record.");
 
       // Ensure Subscription exists (Idempotent)
       await systemSupabase.from("Subscription").upsert({ userId: newUser.id, plan: 'FREE' }, { onConflict: 'userId' });
@@ -115,7 +119,6 @@ export const onAuthenticatedUser = cache(async () => {
 
       if (wsId) {
         // Ensure Membership exists (Idempotent)
-        // FIX #9: onConflict key must match actual UNIQUE constraint: (workspaceId, supabaseId)
         await systemSupabase.from("Member").upsert({ userId: newUser.id, workspaceId: wsId, supabaseId: user.id }, { onConflict: 'workspaceId, supabaseId' });
 
         // Return enriched user
@@ -145,10 +148,11 @@ export const onAuthenticatedUser = cache(async () => {
     }
 
     if (createError) {
-      console.error("❌ onAuthenticatedUser: Manual creation failed even with system client:", createError.message);
+      console.error("❌ onAuthenticatedUser: Sync failed:", createError.message, createError.code);
+      return { status: 500, error: createError.message };
     }
 
-    return { status: 404 };
+    return { status: 404, message: "Manual sync produced no user and no error" };
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('dynamic-server-error')) {
       throw error;
