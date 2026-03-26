@@ -70,8 +70,8 @@ export async function signup(state: any, formData: FormData) {
 
     return { success: true }
   } catch (err: any) {
-    console.error("❌ Signup Catch:", err);
-    return { error: "An unexpected error occurred during signup." }
+    console.error("❌ Signup Catch Error:", err);
+    return { error: err.message || "An unexpected error occurred during signup." }
   }
 }
 
