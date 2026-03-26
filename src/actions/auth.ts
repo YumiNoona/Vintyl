@@ -40,6 +40,9 @@ export async function signup(state: any, formData: FormData) {
     const [firstName, ...rest] = fullName.split(" ")
     const lastName = rest.join(" ")
 
+    console.log("📝 Attempting signup for email:", email);
+    console.log("📝 Metadata payload:", { firstName, lastName, fullName });
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -47,6 +50,9 @@ export async function signup(state: any, formData: FormData) {
         data: {
           first_name: firstName || "",
           last_name: lastName || "",
+          full_name: fullName || "",
+          firstName: firstName || "",
+          lastName: lastName || "",
         },
       },
     })
