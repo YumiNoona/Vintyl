@@ -105,10 +105,6 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
     if (value) router.push(`/dashboard/${value}`);
   };
 
-  const currentWorkspace = workspace?.workspace?.find(
-    (w) => w.id === activeWorkspaceId
-  );
-
   // Combine own + member workspaces, deduplicate by id
   const allWorkspaces = Array.from(
     new Map(
@@ -117,6 +113,10 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
         ...(workspace?.members?.map((m: any) => m.workspace).filter(Boolean) || []),
       ].map((w: any) => [w.id, w])
     ).values()
+  );
+
+  const currentWorkspace = allWorkspaces.find(
+    (w: any) => w.id === activeWorkspaceId
   );
 
   const { data: notifications } = useQueryData(
@@ -144,51 +144,57 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <button className="w-full bg-neutral-900 border border-white/5 hover:border-white/20 transition-all h-auto p-3 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-xl outline-none shadow-sm group">
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex items-center gap-3 truncate">
-                      <div className="w-7 h-7 rounded-lg bg-white text-black flex items-center justify-center font-black text-[10px] shrink-0">
-                        {currentWorkspace?.name.charAt(0).toUpperCase()}
+              <button className="w-full bg-neutral-900/40 backdrop-blur-xl border border-white/10 hover:border-white/20 hover:bg-neutral-900/60 transition-all h-auto px-3 py-2.5 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-2xl outline-none shadow-xl group text-left">
+                  <div className="flex items-center justify-between w-full h-12 gap-2">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-9 h-9 rounded-xl bg-white text-black flex items-center justify-center font-black text-sm shrink-0">
+                        {currentWorkspace?.name ? currentWorkspace.name.charAt(0).toUpperCase() : ""}
                       </div>
-                      <div className="flex flex-col items-start truncate text-left">
-                        <p className="text-xs font-black text-white truncate uppercase tracking-tight">
+                      <div className="flex items-center justify-start min-w-0 flex-1 h-9">
+                        <p className="text-[15px] font-bold text-white truncate leading-none mt-[3px]">
                           {currentWorkspace?.name}
-                        </p>
-                        <p className="text-[9px] text-neutral-500 truncate uppercase tracking-widest font-black">
-                          {currentWorkspace?.type} Workspace
                         </p>
                       </div>
                     </div>
-                    <ChevronsUpDown size={14} className="text-neutral-500 group-hover:text-white transition-colors" />
+                    <ChevronsUpDown size={14} className="text-neutral-500 group-hover:text-white transition-colors shrink-0" />
                   </div>
               </button>
             }
           />
-          <DropdownMenuContent className="w-[230px] bg-popover border-border backdrop-blur-2xl p-2 relative z-[100] ml-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+          <DropdownMenuContent className="w-[240px] bg-neutral-900 border-white/10 backdrop-blur-3xl p-2 relative z-[100] ml-4 rounded-3xl shadow-3xl animate-in fade-in zoom-in-95 duration-200">
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-[10px] text-muted-foreground px-3 py-2 uppercase font-black tracking-widest opacity-70">Your Workspaces</DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-border/50 my-1" />
-              {allWorkspaces.map((w: any) => (
-                <DropdownMenuItem
-                  key={w.id}
-                  onClick={() => onChangeActiveWorkspace(w.id)}
-                  className={`cursor-pointer rounded-lg p-2.5 text-xs transition-all ${
-                    w.id === activeWorkspaceId
-                      ? "bg-white text-black font-black"
-                      : "text-neutral-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <span className="uppercase tracking-tight font-black">{w.name}</span>
-                </DropdownMenuItem>
-              ))}
+              <DropdownMenuLabel className="text-xxs text-neutral-500 px-3 py-2 uppercase font-black tracking-widest opacity-80">Your Workspaces</DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-white/5 my-1" />
+              <div className="space-y-1 mt-1">
+                {allWorkspaces.map((w: any) => (
+                  <DropdownMenuItem
+                    key={w.id}
+                    onClick={() => onChangeActiveWorkspace(w.id)}
+                    className={`cursor-pointer rounded-xl p-3 text-xs transition-all flex items-center gap-3 border border-transparent ${
+                      w.id === activeWorkspaceId
+                        ? "bg-white text-black font-black shadow-xl shadow-white/10"
+                        : "text-neutral-400 hover:bg-white/5 hover:text-white hover:border-white/5"
+                    }`}
+                  >
+                    <div className={`size-6 rounded-lg flex items-center justify-center font-black text-xxs ${
+                      w.id === activeWorkspaceId ? "bg-black text-white" : "bg-white/5 text-neutral-500"
+                    }`}>
+                      {w.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="uppercase tracking-wide font-black">{w.name}</span>
+                  </DropdownMenuItem>
+                ))}
+              </div>
             </DropdownMenuGroup>
-            <DropdownMenuSeparator className="bg-border/50 my-2" />
-            <DropdownMenuGroup>
+            <DropdownMenuSeparator className="bg-white/5 my-2" />
+            <DropdownMenuGroup className="space-y-1">
               <DropdownMenuItem 
                 onClick={() => setIsCreateOpen(true)}
-                className="cursor-pointer flex gap-2 items-center text-white hover:bg-white/5 focus:bg-white/5 p-2.5 rounded-lg font-black uppercase tracking-widest text-[10px]"
+                className="cursor-pointer flex gap-3 items-center text-white hover:bg-white/5 focus:bg-white/5 p-3 rounded-xl font-black uppercase tracking-wide text-sm transition-all"
               >
-                <PlusCircle size={14} />
+                <div className="p-1.5 rounded-lg bg-white/5">
+                  <PlusCircle size={14} />
+                </div>
                 <span>Create Workspace</span>
               </DropdownMenuItem>
               <DropdownMenuItem 
@@ -196,14 +202,20 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
                   setRenameValue(currentWorkspace?.name || "");
                   setIsRenameOpen(true);
                 }}
-                className="cursor-pointer text-muted-foreground hover:text-foreground hover:bg-secondary p-2.5 rounded-lg font-medium"
+                className="cursor-pointer flex gap-3 items-center text-neutral-400 hover:text-white hover:bg-white/5 focus:bg-white/5 p-3 rounded-xl font-black uppercase tracking-wide text-sm transition-all"
               >
+                <div className="p-1.5 rounded-lg bg-white/5">
+                  <PlusCircle size={14} className="rotate-45" />
+                </div>
                 Rename Workspace
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => setIsDeleteOpen(true)}
-                className="cursor-pointer text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-600 p-2.5 rounded-lg font-medium"
+                className="cursor-pointer flex gap-3 items-center text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-600 p-3 rounded-xl font-black uppercase tracking-wide text-sm transition-all"
               >
+                <div className="p-1.5 rounded-lg bg-red-500/10">
+                  <AlertTriangle size={14} />
+                </div>
                 Delete Workspace
               </DropdownMenuItem>
             </DropdownMenuGroup>
@@ -275,44 +287,45 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
           </Dialog>
 
           <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-            <DialogContent className="bg-neutral-900 border-white/10 text-white rounded-3xl shadow-3xl">
-              <DialogHeader>
-                <div className="flex items-center gap-4 text-white mb-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-                  <AlertTriangle size={32} />
+            <DialogContent className="bg-neutral-900 border-white/10 text-white rounded-[2rem] shadow-3xl p-8">
+              <DialogHeader className="pt-2">
+                <div className="flex flex-col items-center justify-center text-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 border border-red-500/20 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+                    <AlertTriangle size={32} />
+                  </div>
                   <div>
-                    <DialogTitle className="text-xl font-black uppercase tracking-tight">Critical Action</DialogTitle>
-                    <p className="text-[10px] text-neutral-500 font-black uppercase mt-1">This operation is irreversible</p>
+                    <DialogTitle className="text-2xl font-black uppercase tracking-tight text-white">Critical Action</DialogTitle>
+                    <p className="text-xxs text-red-400 font-bold uppercase mt-1 tracking-widest">This operation is irreversible</p>
                   </div>
                 </div>
-                <DialogDescription className="text-neutral-400 text-sm font-medium leading-relaxed bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                <DialogDescription className="text-neutral-400 text-sm font-medium leading-relaxed bg-white/[0.02] p-5 text-center rounded-2xl border border-white/5">
                   Warning: Deleting this workspace will permanently lose <span className="text-white font-black underline">ALL</span> data, videos, and folders within it. Please confirm your decision.
                 </DialogDescription>
               </DialogHeader>
-              <DialogFooter className="mt-6">
-                <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="rounded-xl h-11 font-bold text-neutral-500 hover:text-white">Cancel</Button>
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:justify-center w-full">
+                <Button variant="ghost" onClick={() => setIsDeleteOpen(false)} className="rounded-xl h-12 w-full sm:w-auto px-8 font-bold text-neutral-400 hover:text-white uppercase tracking-widest text-xs">Cancel</Button>
                 <Button 
-                  variant="destructive"
-                  className="bg-white hover:bg-neutral-200 text-black h-11 px-8 rounded-xl font-black shadow-xl shadow-white/5 uppercase tracking-widest text-[10px]"
+                  className="bg-red-500 hover:bg-red-600 text-white h-12 w-full sm:w-auto px-8 rounded-xl font-black shadow-xl shadow-red-500/20 uppercase tracking-widest text-xs transition-colors"
                   onClick={() => onDelete({})}
                 >
                   Delete Permanently
                 </Button>
-              </DialogFooter>
+              </div>
             </DialogContent>
           </Dialog>
 
           {currentWorkspace?.type === "PUBLIC" && (
             <Modal
               trigger={
-                <span className="text-sm cursor-pointer flex items-center justify-center bg-white text-black w-full rounded-xl p-3 gap-2 border border-white/10 transition-all shadow-xl shadow-white/5 group hover:bg-neutral-200">
+                <button className="text-sm cursor-pointer flex items-center justify-center bg-white text-black w-full rounded-xl p-3 gap-2 border border-white/10 transition-all shadow-xl shadow-white/5 group hover:bg-neutral-200">
                   <PlusCircle
                     size={16}
                     className="group-hover:scale-110 transition-transform"
                   />
-                  <span className="font-black uppercase tracking-widest text-[10px]">
+                  <span className="font-black uppercase tracking-wide text-sm">
                     Invite Members
                   </span>
-                </span>
+                </button>
               }
               title="Invite to workspace"
               description="Invite other users to your workspace"
@@ -350,8 +363,8 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
              <Download size={16} className="group-hover:scale-110 transition-transform" />
           </div>
           <div className="flex flex-col">
-            <span className="text-[10px] leading-none uppercase tracking-widest text-neutral-500">Download</span>
-            <span className="text-xs uppercase tracking-tight">Desktop App</span>
+            <span className="text-xxs leading-none uppercase tracking-widest text-neutral-500">Download</span>
+            <span className="text-sm font-black uppercase tracking-wide">Desktop App</span>
           </div>
         </a>
       </div>

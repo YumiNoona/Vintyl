@@ -21,11 +21,23 @@ export async function POST(
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
+    // FIX #13: source is stored as a full Supabase public URL, not just the filename.
+    // Using .like() matches ".../<filename>" correctly instead of an exact eq() that always misses.
+    const { data: videos } = await supabaseAdmin
+      .from("Video")
+      .select("id")
+      .eq("userId", user.id)
+      .like("source", `%${filename}%`)
+      .limit(1)
+
+    if (!videos || videos.length === 0) {
+      return NextResponse.json({ error: "Video not found" }, { status: 404 })
+    }
+
     const { error } = await supabaseAdmin
       .from("Video")
       .update({ processing: false })
-      .eq("source", filename)
-      .eq("userId", user.id)
+      .eq("id", videos[0].id)
 
     if (!error) {
       return NextResponse.json({ status: 200 })

@@ -8,13 +8,18 @@ import { useRouter } from "next/navigation";
 
 interface AISummaryButtonProps {
   videoId: string;
+  plan?: string;
 }
 
-export default function AISummaryButton({ videoId }: AISummaryButtonProps) {
+export default function AISummaryButton({ videoId, plan }: AISummaryButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   const handleGenerateSummary = async () => {
+    if (plan === "FREE") {
+      toast.error("AI summaries are not available on the Free plan. Please upgrade.");
+      return;
+    }
     setIsLoading(true);
     try {
       const response = await fetch("/api/ai", {

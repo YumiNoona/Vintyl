@@ -122,10 +122,10 @@ export default function Comments({ videoId, user }: CommentsProps) {
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-semibold text-sm text-neutral-200">
+                    <span className="text-sm font-semibold text-neutral-200">
                       {comment.user?.firstName} {comment.user?.lastName}
                     </span>
-                    <span className="text-[10px] text-neutral-500 bg-neutral-900 px-1.5 py-0.5 rounded uppercase tracking-tighter">
+                    <span className="text-xs text-muted-foreground">
                       {new Date(comment.createdAt).toLocaleDateString()}
                     </span>
                   </div>
@@ -133,7 +133,7 @@ export default function Comments({ videoId, user }: CommentsProps) {
                   
                   <button 
                     onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                    className="text-[11px] font-medium text-neutral-500 hover:text-purple-400 mt-2 transition-colors uppercase tracking-widest"
+                    className="text-sm font-medium text-neutral-500 hover:text-purple-400 mt-2 transition-colors uppercase tracking-widest"
                   >
                     Reply
                   </button>
@@ -176,14 +176,14 @@ export default function Comments({ videoId, user }: CommentsProps) {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="font-medium text-xs text-neutral-300">
+                        <span className="text-sm font-semibold text-neutral-200">
                           {reply.user?.firstName} {reply.user?.lastName}
                         </span>
-                        <span className="text-[9px] text-neutral-600">
+                        <span className="text-xs text-muted-foreground">
                           {new Date(reply.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-xs text-neutral-400 leading-relaxed">{reply.comment}</p>
+                      <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{reply.comment}</p>
                     </div>
                   </div>
                 ))}

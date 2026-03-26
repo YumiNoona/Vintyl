@@ -78,102 +78,122 @@ export function AuthForm() {
 
   if (emailSent) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] px-4">
-        <div className="w-full max-w-md space-y-8 bg-secondary/10 p-10 rounded-3xl border border-border backdrop-blur-xl text-center animate-in fade-in zoom-in duration-500">
-          <div className="bg-purple-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Mail className="text-purple-400" size={32} />
-          </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter">Check your email</h1>
-          <p className="text-muted-foreground leading-relaxed">
-            We&apos;ve sent a confirmation link to your inbox. <br />
-            Please confirm your email to continue.
-          </p>
-          <button 
-            onClick={() => {
-              setEmailSent(false);
-              router.replace("/auth?mode=signin");
-            }} 
-            className="w-full bg-secondary/30 hover:bg-secondary/40 text-white font-bold py-3 rounded-xl transition-all mt-4"
-          >
-            Back to Sign In
-          </button>
+      <div className="w-full max-w-md space-y-8 bg-secondary/10 p-10 rounded-3xl border border-border backdrop-blur-xl text-center animate-in fade-in zoom-in duration-500">
+        <div className="bg-purple-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
+          <Mail className="text-purple-400" size={32} />
         </div>
+        <h1 className="text-3xl font-black text-white tracking-tighter">Check your email</h1>
+        <p className="text-muted-foreground leading-relaxed">
+          We&apos;ve sent a confirmation link to your inbox. <br />
+          Please confirm your email to continue.
+        </p>
+        <button 
+          onClick={() => {
+            setEmailSent(false);
+            router.replace("/auth?mode=signin");
+          }} 
+          className="w-full bg-secondary/30 hover:bg-secondary/40 text-white font-bold py-3 rounded-xl transition-all mt-4"
+        >
+          Back to Sign In
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[#050505] px-4">
-      <div className="w-full max-w-md space-y-8 bg-secondary/10 p-8 rounded-3xl border border-border backdrop-blur-xl">
-        <div className="text-center">
+    <div className="w-full max-w-md space-y-8 bg-secondary/10 p-8 rounded-3xl border border-border backdrop-blur-xl transition-all duration-500">
+        <div className="text-center flex flex-col items-center">
+          <div className="w-10 h-10 rounded-md bg-white flex items-center justify-center text-black font-bold text-lg mb-4">
+            V
+          </div>
           <h1 className="text-3xl font-black text-foreground tracking-tighter">Vintyl Auth</h1>
           <p className="text-muted-foreground mt-1">Sign in or create an account to start recording</p>
         </div>
 
-        <Tabs 
-          value={mode} 
-          onValueChange={(val) => {
-            setMode(val);
-            router.replace(`/auth?mode=${val}`);
-          }} 
-          className="w-full"
-        >
-          <TabsList className="grid grid-cols-2 w-full mb-8 bg-neutral-900/80 border border-white/5 p-1.5 rounded-2xl h-14">
-            <TabsTrigger value="signin" className="rounded-xl data-active:bg-white data-active:text-black font-black tracking-tight text-neutral-400 transition-all">Sign In</TabsTrigger>
-            <TabsTrigger value="signup" className="rounded-xl data-active:bg-white data-active:text-black font-black tracking-tight text-neutral-400 transition-all">Sign Up</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="signin" className="animate-in fade-in slide-in-from-left-4 duration-300">
-            <form action={loginAction} onSubmit={handleFormSubmit} className="space-y-5">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">Email Address</label>
-                <input name="email" type="email" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">Password</label>
-                <input name="password" type="password" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
-              </div>
-              <button 
-                disabled={isLoginPending}
-                type="submit" 
-                className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
-              >
-                {isLoginPending ? <><Loader2 className="animate-spin" size={20} /> Signing In...</> : "Sign In"}
-              </button>
-            </form>
-          </TabsContent>
-
-          <TabsContent value="signup" className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <form action={signupAction} onSubmit={handleFormSubmit} className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
+        <div className="w-full">
+          {mode === "signin" ? (
+            <div className="animate-in fade-in slide-in-from-left-4 duration-300">
+              <form action={loginAction} onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">First Name</label>
-                  <input name="first_name" type="text" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="Jane" />
+                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Email Address</label>
+                  <input name="email" type="email" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">Last Name</label>
-                  <input name="last_name" type="text" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="Doe" />
+                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Password</label>
+                  <input name="password" type="password" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">Email Address</label>
-                <input name="email" type="email" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-500 ml-1">Password</label>
-                <input name="password" type="password" required className="w-full bg-neutral-900/50 border border-white/5 rounded-xl p-4 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
-              </div>
+                <button 
+                  disabled={isLoginPending}
+                  type="submit" 
+                  className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2 uppercase tracking-tight"
+                >
+                  {isLoginPending ? <><Loader2 className="animate-spin" size={20} /> Signing In...</> : "Sign In"}
+                </button>
+              </form>
+            </div>
+          ) : (
+            <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+              <form action={signupAction} onSubmit={handleFormSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Name</label>
+                  <input
+                    name="full_name"
+                    type="text"
+                    placeholder="Jane Doe"
+                    required
+                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Email Address</label>
+                  <input name="email" type="email" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Password</label>
+                  <input name="password" type="password" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
+                </div>
+                <button 
+                  disabled={isSignupPending}
+                  type="submit" 
+                  className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2 uppercase tracking-tight"
+                >
+                  {isSignupPending ? <><Loader2 className="animate-spin" size={20} /> Creating Account...</> : "Create Account"}
+                </button>
+              </form>
+            </div>
+          )}
+        </div>
+        
+        {/* Bottom CTA UX */}
+        <p className="text-xs text-neutral-500 text-center mt-4">
+          {mode === "signin" ? (
+            <>
+              Don&apos;t have an account?{" "}
               <button 
-                disabled={isSignupPending}
-                type="submit" 
-                className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+                onClick={() => {
+                  setMode("signup");
+                  router.push("/auth?mode=signup");
+                }}
+                className="text-white font-medium hover:underline"
               >
-                {isSignupPending ? <><Loader2 className="animate-spin" size={20} /> Creating Account...</> : "Create Account"}
+                Create one
               </button>
-            </form>
-          </TabsContent>
-        </Tabs>
-      </div>
+            </>
+          ) : (
+            <>
+              Already have an account?{" "}
+              <button 
+                onClick={() => {
+                  setMode("signin");
+                  router.push("/auth?mode=signin");
+                }}
+                className="text-white font-medium hover:underline"
+              >
+                Log in
+              </button>
+            </>
+          )}
+        </p>
     </div>
   );
 }

@@ -87,102 +87,111 @@ export default function DashboardNavbar({
 
       {/* Right Actions */}
       <div className="flex items-center gap-4">
-        <Modal
-          trigger={
-            <Button
-              size="sm"
-              className="bg-foreground text-background hover:bg-foreground/90 gap-2 transition-transform hover:scale-105 shadow-md"
+        {mounted ? (
+          <>
+            <Modal
+              trigger={
+                <Button
+                  size="sm"
+                  className="bg-foreground text-background hover:bg-foreground/90 gap-2 transition-transform hover:scale-105 shadow-md"
+                >
+                  <MonitorUp size={16} />
+                  <span className="hidden md:inline">Record</span>
+                </Button>
+              }
+              title="Record a Video"
+              description="Choose how you would like to record your video."
             >
-              <MonitorUp size={16} />
-              <span className="hidden md:inline">Record</span>
+              {({ setOpen }: { setOpen: (open: boolean) => void }) => (
+                <div className="flex flex-col gap-5 mt-6">
+                  <div className="group border border-white/10 rounded-2xl p-6 flex flex-col gap-4 bg-white/5 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1.5">
+                        <h4 className="font-bold text-white text-lg tracking-tight uppercase">Desktop Recorder</h4>
+                        <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest opacity-70">Recommended</p>
+                      </div>
+                      <div className="p-2 rounded-xl bg-white/5 text-white">
+                        <MonitorUp size={20} />
+                      </div>
+                    </div>
+                    <ul className="text-xs text-neutral-400 space-y-2 font-bold uppercase tracking-wider">
+                      <li className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-white" />
+                        Full screen & camera recording
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-white" />
+                        System audio capture
+                      </li>
+                    </ul>
+                    <Button
+                      onClick={() => {
+                        setOpen(false);
+                        handleOpenDesktopApp();
+                      }}
+                      className="w-full gap-2 bg-white hover:bg-neutral-200 text-black h-12 rounded-xl font-black mt-2 shadow-xl shadow-white/5 active:scale-95 transition-all uppercase tracking-tight"
+                    >
+                      <Download size={18} />
+                      Get Desktop App
+                    </Button>
+                  </div>
+
+                  <div className="group border border-border rounded-2xl p-6 flex flex-col gap-4 bg-secondary/20 transition-all hover:bg-secondary/40 hover:border-foreground/10">
+                    <div className="flex items-start justify-between">
+                      <div className="space-y-1.5">
+                        <h4 className="font-bold text-foreground text-lg tracking-tight">Browser Recorder</h4>
+                        <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Direct & Fast</p>
+                      </div>
+                      <div className="p-2 rounded-xl bg-secondary text-muted-foreground">
+                        <MonitorUp size={20} />
+                      </div>
+                    </div>
+                    <ul className="text-sm text-muted-foreground/80 space-y-2">
+                      <li className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-muted-foreground/40" />
+                        No software required
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <div className="size-1 rounded-full bg-muted-foreground/40" />
+                        Limited to active tab/window
+                      </li>
+                    </ul>
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2 border-border bg-background hover:bg-secondary text-foreground h-12 rounded-xl font-bold mt-2 shadow-sm active:scale-95 transition-all"
+                      onClick={() => {
+                        setOpen(false);
+                        router.push(`/dashboard/${workspaceId}/record`);
+                      }}
+                    >
+                      <Plus size={18} className="rotate-45" />
+                      Record in Browser
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Modal>
+
+            {/* Theme Toggle */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
+            >
+              {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </Button>
-          }
-          title="Record a Video"
-          description="Choose how you would like to record your video."
-        >
-          {({ setOpen }: { setOpen: (open: boolean) => void }) => (
-            <div className="flex flex-col gap-5 mt-6">
-              <div className="group border border-white/10 rounded-2xl p-6 flex flex-col gap-4 bg-white/5 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1.5">
-                    <h4 className="font-bold text-white text-lg tracking-tight uppercase">Desktop Recorder</h4>
-                    <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest opacity-70">Recommended</p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-white/5 text-white">
-                    <MonitorUp size={20} />
-                  </div>
-                </div>
-                <ul className="text-xs text-neutral-400 space-y-2 font-bold uppercase tracking-wider">
-                  <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-white" />
-                    Full screen & camera recording
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-white" />
-                    System audio capture
-                  </li>
-                </ul>
-                <Button
-                  onClick={() => {
-                    setOpen(false);
-                    handleOpenDesktopApp();
-                  }}
-                  className="w-full gap-2 bg-white hover:bg-neutral-200 text-black h-12 rounded-xl font-black mt-2 shadow-xl shadow-white/5 active:scale-95 transition-all uppercase tracking-tight"
-                >
-                  <Download size={18} />
-                  Get Desktop App
-                </Button>
-              </div>
 
-              <div className="group border border-border rounded-2xl p-6 flex flex-col gap-4 bg-secondary/20 transition-all hover:bg-secondary/40 hover:border-foreground/10">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1.5">
-                    <h4 className="font-bold text-foreground text-lg tracking-tight">Browser Recorder</h4>
-                    <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Direct & Fast</p>
-                  </div>
-                  <div className="p-2 rounded-xl bg-secondary text-muted-foreground">
-                    <MonitorUp size={20} />
-                  </div>
-                </div>
-                <ul className="text-sm text-muted-foreground/80 space-y-2">
-                  <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-muted-foreground/40" />
-                    No software required
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <div className="size-1 rounded-full bg-muted-foreground/40" />
-                    Limited to active tab/window
-                  </li>
-                </ul>
-                <Button
-                  variant="outline"
-                  className="w-full gap-2 border-border bg-background hover:bg-secondary text-foreground h-12 rounded-xl font-bold mt-2 shadow-sm active:scale-95 transition-all"
-                  onClick={() => {
-                    setOpen(false);
-                    router.push(`/dashboard/${workspaceId}/record`);
-                  }}
-                >
-                  <Plus size={18} className="rotate-45" />
-                  Record in Browser
-                </Button>
-              </div>
-            </div>
-          )}
-        </Modal>
-
-        {/* Theme Toggle */}
-        {mounted && (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full transition-colors"
-          >
-            {theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
-          </Button>
+            <SupabaseUserButton />
+          </>
+        ) : (
+          /* Placeholder to avoid layout shift */
+          <div className="flex items-center gap-4 animate-pulse">
+            <div className="w-24 h-9 bg-secondary/20 rounded-md" />
+            <div className="w-9 h-9 bg-secondary/20 rounded-full" />
+            <div className="w-10 h-10 bg-secondary/20 rounded-full" />
+          </div>
         )}
-
-        <SupabaseUserButton />
       </div>
     </div>
   );

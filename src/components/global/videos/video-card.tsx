@@ -110,12 +110,9 @@ export default function VideoCard({
                  <Play className="text-white fill-white ml-1" size={24} />
                </div>
             </div>
-            <div className="absolute bottom-2 right-2 z-10 px-2 py-1 bg-card/70 backdrop-blur-sm rounded-md text-[10px] font-medium text-foreground">
-                00:00
-            </div>
           </div>
           <div className="px-5 py-4 flex flex-col gap-3 bg-gradient-to-b from-transparent to-secondary/10">
-            <h2 className="text-sm font-black text-white line-clamp-1 group-hover:translate-x-1 transition-transform">
+            <h2 className="text-base md:text-lg font-semibold leading-tight text-white line-clamp-1 group-hover:translate-x-1 transition-transform">
               {title || "Untitled Video"}
             </h2>
           <div className="flex gap-x-2 items-center">
@@ -129,7 +126,7 @@ export default function VideoCard({
               <p className="capitalize text-xs font-bold text-foreground/80">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-muted-foreground text-[10px] font-medium flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
                 <span className="bg-secondary px-1.5 py-0.5 rounded">{timeAgo}</span>
                 <span className="opacity-30">•</span>
                 <span className="bg-secondary px-1.5 py-0.5 rounded font-black">{views} VIEWS</span>

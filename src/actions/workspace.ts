@@ -2,6 +2,7 @@
 
 import { createClient, createSystemClient } from "@/lib/supabase/server";
 import axios from "axios";
+const { PLAN_LIMITS } = require("../../shared/planLimits");
 
 export const verifyAccessToWorkspace = async (workspaceId: string) => {
   try {
@@ -180,26 +181,14 @@ export const createWorkspace = async (name: string) => {
       .eq("userId", dbUser.id)
       .single();
 
-    const isPro = authorized?.plan === "PRO";
-    const workspaceType = isPro ? "PUBLIC" : "PERSONAL";
+    const plan = authorized?.plan || "FREE";
+    const isPro = plan === "PRO";
 
-    // If trying to create a PERSONAL workspace but one already exists, return the existing one
-    if (!isPro) {
-      const { data: existingWS } = await systemSupabase
-        .from("Workspace")
-        .select("id")
-        .eq("userId", dbUser.id)
-        .eq("type", "PERSONAL")
-        .single();
-      if (existingWS) {
-        // Ensure membership exists
-        await systemSupabase.from("Member").upsert(
-          { userId: dbUser.id, workspaceId: existingWS.id, supabaseId: user.id },
-          { onConflict: "workspaceId, supabaseId" }
-        );
-        return { status: 201, data: existingWS.id };
-      }
-    }
+    // All manually created workspaces should be PUBLIC to prevent hitting the 
+    // unique_personal_workspace constraint in Postgres. 
+    // If you explicitly want to stop FREE users from creating workspaces, 
+    // return a 403 error string here instead of silently returning the old ID.
+    const workspaceType = "PUBLIC";
 
     const { data: workspace, error } = await systemSupabase
       .from("Workspace")
@@ -272,7 +261,11 @@ export const createFolder = async (workspaceId: string) => {
 export const renameFolders = async (folderId: string, name: string) => {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
+    // Use system client: Folder RLS checks Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { error } = await systemSupabase
       .from("Folder")
       .update({ name })
       .eq("id", folderId);
@@ -311,6 +304,25 @@ export const inviteMembers = async (
         .single();
 
       if (workspace) {
+        // Enforce Member Limit based on Plan
+        const { data: userPlanData } = await supabase
+          .from("User")
+          .select("Subscription(plan)")
+          .eq("supabaseId", user.id)
+          .single();
+        
+        const plan = (userPlanData?.Subscription as any)?.plan || "FREE";
+        const limit = (PLAN_LIMITS as any)[plan]?.members || 1;
+
+        const { count: currentMembers } = await supabase
+          .from("Member")
+          .select("*", { count: "exact", head: true })
+          .eq("workspaceId", workspaceId);
+
+        if (currentMembers !== null && currentMembers >= limit) {
+          return { status: 403, data: `Member limit reached for ${plan} plan (${limit}). Upgrade required.` };
+        }
+
         const systemSupabase = await createSystemClient();
         const { data: recipient } = await systemSupabase
           .from("User")
@@ -318,7 +330,7 @@ export const inviteMembers = async (
           .eq("id", receiverId)
           .single();
 
-        const { error: inviteError } = await supabase
+        const { data: newInvite, error: inviteError } = await supabase
           .from("Invite")
           .insert({
             senderId: senderInfo.id,
@@ -327,11 +339,16 @@ export const inviteMembers = async (
             workspaceId,
             email,
             content: `You are invited to join ${workspace.name} workspace`,
-          });
+          })
+          .select("id")
+          .single();
 
+        // FIX #7: Store inviteId on the notification so the activity page
+        // can pass the correct invite ID to InviteAcceptButton (not notification.id)
         await supabase.from("Notification").insert({
           userId: receiverId,
           content: `${senderInfo.firstName} ${senderInfo.lastName} invited you to ${workspace.name}`,
+          inviteId: newInvite?.id ?? null,
         });
 
         if (!inviteError) {
@@ -357,7 +374,11 @@ export const moveVideoLocation = async (
 ) => {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
+    // Use system client: Video RLS checks Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { error } = await systemSupabase
       .from("Video")
       .update({
         folderId: folderId || null,
@@ -489,8 +510,9 @@ export const deleteFolder = async (folderId: string) => {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
-
-    const { error } = await supabase
+    // Use system client: Folder RLS checks Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { error } = await systemSupabase
       .from("Folder")
       .delete()
       .eq("id", folderId);
@@ -540,11 +562,21 @@ export const deleteWorkspace = async (workspaceId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const { error } = await supabase
+    // FIX #6: Must use internal User.id (not supabase auth UUID) to match Workspace.userId FK
+    const systemSupabase = await createSystemClient();
+    const { data: dbUser } = await systemSupabase
+      .from("User")
+      .select("id")
+      .eq("supabaseId", user.id)
+      .single();
+
+    if (!dbUser) return { status: 404, data: "User not found" };
+
+    const { error } = await systemSupabase
       .from("Workspace")
       .delete()
       .eq("id", workspaceId)
-      .eq("userId", user.id);
+      .eq("userId", dbUser.id);
 
     if (!error) {
       return { status: 200, data: "Workspace deleted" };
@@ -562,11 +594,13 @@ export const updateFolderLocation = async (
 ) => {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
+    // Use system client: Folder RLS checks Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { error } = await systemSupabase
       .from("Folder")
-      .update({
-        workspaceId,
-      })
+      .update({ workspaceId })
       .eq("id", folderId);
 
     if (!error) return { status: 200, data: "Folder moved successfully" };
@@ -602,7 +636,11 @@ export const editVideoInfo = async (
 ) => {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
+    // Use system client: Video RLS checks Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { error } = await systemSupabase
       .from("Video")
       .update({ title, description })
       .eq("id", videoId);

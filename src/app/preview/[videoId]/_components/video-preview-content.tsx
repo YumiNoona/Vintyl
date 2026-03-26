@@ -9,6 +9,7 @@ import Comments from "./comments";
 import ShareModal from "@/components/global/share-modal";
 import EditVideo from "@/components/global/videos/edit-video";
 import { useRouter } from "next/navigation";
+import { PLAN_LIMITS } from "@/constants";
 
 type VideoPreviewContentProps = {
   video: {
@@ -107,37 +108,37 @@ export default function VideoPreviewContent({
             </div>
 
             <div className="space-y-4">
-              <div className="flex justify-between items-start gap-4">
-                <h1 className="text-4xl font-black text-white tracking-tight leading-tight">
+              <div className="flex justify-between items-start gap-4 flex-wrap md:flex-nowrap">
+                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight flex-1 break-all md:break-words">
                   {video.title || "Untitled Video"}
                 </h1>
-                {currentUser?.id === video.user?.supabaseId && (
-                  <div className="pt-1">
+                <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1">
+                  {currentUser?.id === video.user?.supabaseId && (
                     <EditVideo
                       videoId={video.id}
                       title={video.title || ""}
                       description={video.description || ""}
                     />
-                  </div>
-                )}
-                <ShareModal
-                  videoId={video.id}
-                  trigger={
-                    <button className="flex items-center gap-2 bg-white hover:bg-neutral-200 text-black px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-xl shadow-white/5 active:scale-95">
-                      <Share2 size={16} />
-                      Share Video
-                    </button>
-                  }
-                />
-                <EmbedModal
-                  videoId={video.id}
-                  trigger={
-                    <span className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 rounded-xl text-sm font-black transition-all border border-white/5 cursor-pointer active:scale-95">
-                      <Code size={16} />
-                      Embed
-                    </span>
-                  }
-                />
+                  )}
+                  <ShareModal
+                    videoId={video.id}
+                    trigger={
+                      <button className="flex items-center gap-2 bg-white hover:bg-neutral-200 text-black px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-xl shadow-white/5 active:scale-95">
+                        <Share2 size={16} />
+                        Share Video
+                      </button>
+                    }
+                  />
+                  <EmbedModal
+                    videoId={video.id}
+                    trigger={
+                      <span className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 rounded-xl text-sm font-black transition-all border border-white/5 cursor-pointer active:scale-95">
+                        <Code size={16} />
+                        Embed
+                      </span>
+                    }
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-6 text-neutral-400 text-sm">
@@ -148,7 +149,7 @@ export default function VideoPreviewContent({
                   </Avatar>
                   <div className="flex flex-col">
                      <span className="font-bold text-white leading-none text-sm">{video.user?.firstName} {video.user?.lastName}</span>
-                     <span className="text-[10px] text-neutral-500 uppercase font-black tracking-widest">{createdDate.toLocaleDateString()}</span>
+                     <span className="text-xs text-muted-foreground uppercase font-black tracking-widest">{createdDate.toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="h-6 w-px bg-white/5" />
@@ -170,14 +171,14 @@ export default function VideoPreviewContent({
           {/* Sidebar: AI Insights & Tabs */}
           <div className="lg:col-span-1 border-l border-white/5 pl-8 space-y-6">
             <Tabs defaultValue="summary" className="w-full">
-              <TabsList className="grid grid-cols-3 bg-neutral-900/50 border border-white/5 p-1 rounded-xl">
-                <TabsTrigger value="summary" className="data-[state=active]:bg-neutral-800 rounded-lg py-1.5"><StickyNote size={14} /></TabsTrigger>
-                <TabsTrigger value="transcript" className="data-[state=active]:bg-neutral-800 rounded-lg py-1.5"><ListRestart size={14} /></TabsTrigger>
-                <TabsTrigger value="activity" className="data-[state=active]:bg-neutral-800 rounded-lg py-1.5"><ActivityIcon size={14} /></TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-neutral-900/50 border border-white/5 p-1.5 h-11 rounded-xl">
+                <TabsTrigger value="summary" className="rounded-lg"><StickyNote size={16} /></TabsTrigger>
+                <TabsTrigger value="transcript" className="rounded-lg"><ListRestart size={16} /></TabsTrigger>
+                <TabsTrigger value="activity" className="rounded-lg"><ActivityIcon size={16} /></TabsTrigger>
               </TabsList>
               
               <TabsContent value="summary" className="mt-6 space-y-4 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2 text-white font-black text-[10px] uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-white font-black text-xxs uppercase tracking-widest">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   AI Summary
                 </div>
@@ -186,7 +187,16 @@ export default function VideoPreviewContent({
                      "{video.summary}"
                    </div>
                 ) : (
-                   <AISummaryButton videoId={video.id} />
+                  PLAN_LIMITS[video.user?.subscription?.plan || "FREE"].ai ? (
+                    <AISummaryButton videoId={video.id} plan={video.user?.subscription?.plan || "FREE"} />
+                  ) : (
+                    <div className="p-6 bg-white/[0.03] border border-dashed border-white/10 rounded-3xl text-sm text-neutral-500 italic">
+                      AI summaries are available on PRO and Team plans. 
+                      <button onClick={() => router.push("/billing")} className="ml-2 text-white font-black not-italic hover:underline">
+                        Upgrade Now
+                      </button>
+                    </div>
+                  )
                 )}
               </TabsContent>
 
@@ -214,14 +224,14 @@ export default function VideoPreviewContent({
                      <div className="w-8 h-8 rounded-full bg-indigo-500/10 flex items-center justify-center text-indigo-400"><Eye size={14}/></div>
                      <div>
                         <p className="text-xs text-neutral-300">Global View</p>
-                        <p className="text-[10px] text-neutral-500">Video viewed by a visitor</p>
+                        <p className="text-xs text-muted-foreground">Video viewed by a visitor</p>
                      </div>
                   </div>
                   <div className="p-3 bg-neutral-900/40 rounded-xl border border-white/5 flex gap-3">
                      <div className="w-8 h-8 rounded-full bg-green-500/10 flex items-center justify-center text-green-400"><Send size={14}/></div>
                      <div>
                         <p className="text-xs text-neutral-300">New Comment</p>
-                        <p className="text-[10px] text-neutral-500">Activity logged 2h ago</p>
+                        <p className="text-xs text-muted-foreground">Activity logged 2h ago</p>
                      </div>
                   </div>
                 </div>

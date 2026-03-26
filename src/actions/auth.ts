@@ -10,6 +10,8 @@ export async function login(state: any, formData: FormData) {
     const email = formData.get('email') as string
     const password = formData.get('password') as string
 
+    console.log("🔐 Attempting login for email:", email);
+
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -20,8 +22,10 @@ export async function login(state: any, formData: FormData) {
       return { error: error.message }
     }
 
+    console.log("✅ Login successful for:", email);
     return { success: true }
   } catch (err: any) {
+    console.error("❌ Login Catch:", err);
     return { error: "An unexpected error occurred during login." }
   }
 }
@@ -31,16 +35,18 @@ export async function signup(state: any, formData: FormData) {
     const supabase = await createClient()
     const email = formData.get('email') as string
     const password = formData.get('password') as string
-    const firstName = formData.get('first_name') as string
-    const lastName = formData.get('last_name') as string
+    const fullName = (formData.get('full_name') as string || "").trim()
+
+    const [firstName, ...rest] = fullName.split(" ")
+    const lastName = rest.join(" ")
 
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
-          first_name: firstName,
-          last_name: lastName,
+          first_name: firstName || "",
+          last_name: lastName || "",
         },
       },
     })

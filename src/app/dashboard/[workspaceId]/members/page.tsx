@@ -4,6 +4,9 @@ import { Users, PlusCircle, ShieldCheck } from "lucide-react";
 import Modal from "@/components/global/modal";
 import Search from "@/components/global/search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { PLAN_LIMITS } from "@/constants";
+import { createClient } from "@/lib/supabase/server";
+import Link from "next/link";
 
 export default async function MembersPage({
   params,
@@ -13,6 +16,21 @@ export default async function MembersPage({
   const { workspaceId } = await params;
   const membersData = await getWorkspaceMembers(workspaceId);
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const { data: userPlanData } = await supabase
+    .from("User")
+    .select("Subscription(plan)")
+    .eq("supabaseId", user.id)
+    .single();
+  
+  const plan = (userPlanData?.Subscription as any)?.plan || "FREE";
+  const limit = (PLAN_LIMITS as any)[plan]?.members || 1;
+  const currentMembers = (membersData.data?.members?.length || 0) + 1; // +1 for owner
+  const canInvite = currentMembers < limit;
+
   return (
     <div className="flex flex-col gap-10">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
@@ -20,18 +38,28 @@ export default async function MembersPage({
           <h1 className="text-4xl font-black text-foreground tracking-tight">Workspace Members</h1>
           <p className="text-muted-foreground mt-2 font-medium">Manage team access and permissions for this space.</p>
         </div>
-        <Modal
-          trigger={
-            <button className="flex items-center gap-2 px-8 py-3 bg-foreground text-background hover:bg-foreground/90 rounded-2xl font-bold transition-all shadow-xl shadow-foreground/10 active:scale-95 whitespace-nowrap">
-              <PlusCircle size={20} />
-              Invite Member
-            </button>
-          }
-          title="Invite to workspace"
-          description="Enter an email to send an invitation."
-        >
-          <Search workspaceId={workspaceId} />
-        </Modal>
+        {canInvite ? (
+          <Modal
+            trigger={
+              <button className="flex items-center gap-2 px-8 py-3 bg-foreground text-background hover:bg-foreground/90 rounded-2xl font-bold transition-all shadow-xl shadow-foreground/10 active:scale-95 whitespace-nowrap">
+                <PlusCircle size={20} />
+                Invite Member
+              </button>
+            }
+            title="Invite to workspace"
+            description="Enter an email to send an invitation."
+          >
+            <Search workspaceId={workspaceId} />
+          </Modal>
+        ) : (
+          <Link
+            href="/dashboard/billing"
+            className="flex items-center gap-2 px-8 py-3 bg-neutral-900 text-neutral-400 hover:text-white border border-white/5 rounded-2xl font-bold transition-all active:scale-95 whitespace-nowrap group"
+          >
+            <PlusCircle size={20} className="group-hover:text-purple-500" />
+            Upgrade to Invite
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

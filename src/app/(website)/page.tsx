@@ -61,14 +61,14 @@ export default function HomePage() {
                 </span>
               </div>
               
-              <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter text-white">
+              <h1 id="hero-title" className="text-4xl md:text-6xl font-semibold leading-tight text-white mb-6">
                 Record. Share.<br />
                 <span className="text-neutral-500">
                   Collaborate.
                 </span>
               </h1>
               
-              <p className="text-lg md:text-xl text-neutral-400 max-w-lg leading-relaxed font-medium">
+              <p id="hero-sub" className="text-neutral-400 text-base md:text-lg mt-4 max-w-lg leading-relaxed font-medium">
                 Vintyl is an async video platform that lets teams record, 
                 share, and discuss videos with AI-powered insights.
               </p>
@@ -143,7 +143,7 @@ export default function HomePage() {
       </section>
 
       {/* Demo Section */}
-      <section id="demo" className="py-32 px-6">
+      <section id="demo" className="py-20 md:py-28 px-6">
         <div className="max-w-7xl mx-auto">
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
@@ -175,7 +175,7 @@ export default function HomePage() {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-32 px-6 relative bg-white/[0.01]">
+      <section id="features" className="py-20 md:py-28 px-6 relative bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
@@ -210,7 +210,7 @@ export default function HomePage() {
       </section>
 
       {/* How it Works Section */}
-      <section id="workflow" className="py-32 px-6 bg-white/[0.01]">
+      <section id="workflow" className="py-20 md:py-28 px-6 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
             <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
@@ -250,7 +250,7 @@ export default function HomePage() {
       </section>
 
       {/* FAQ Section */}
-      <section id="faq" className="py-32 px-6">
+      <section id="faq" className="py-20 md:py-28 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-20">
             <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Frequently Asked Questions</h2>
@@ -284,8 +284,8 @@ export default function HomePage() {
       </section>
 
       {/* AI Section (Restored) */}
-      <section id="ai" className="py-32 px-6">
-        <div className="max-w-7xl mx-auto bg-neutral-900/40 rounded-[3rem] border border-white/5 p-12 lg:p-20 overflow-hidden relative">
+      <section id="ai" className="py-20 md:py-28 px-6">
+        <div id="ai-section" className="max-w-7xl mx-auto rounded-2xl border border-neutral-800 bg-neutral-900/50 p-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 blur-[100px] rounded-full" />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
@@ -320,7 +320,7 @@ export default function HomePage() {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-32 px-6">
+      <section id="pricing" className="py-20 md:py-28 px-6">
         <div className="max-w-7xl mx-auto text-center mb-20 space-y-4">
           <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Simple Pricing</h2>
           <p className="text-neutral-500 max-w-xl mx-auto font-bold">Start for free, upgrade as your team grows.</p>
@@ -380,11 +380,9 @@ export default function HomePage() {
       <footer className="py-20 px-8 border-t border-white/5 bg-neutral-950/50">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-20">
           <div className="space-y-6">
-             <div className="text-3xl font-bold flex items-center gap-3">
-               <div className="w-8 h-8 rounded-lg bg-white overflow-hidden flex items-center justify-center p-1.5">
-                  <Image src="/vintyl-logo.svg" alt="logo" width={32} height={32} />
-               </div>
-               <span className="tracking-tighter text-white">Vintyl</span>
+             <div className="flex items-center gap-3">
+                <img src="/vintyl-logo.svg" alt="logo" className="h-6 w-auto" />
+                <span className="text-sm font-semibold text-white">Vintyl</span>
              </div>
              <p className="text-neutral-500 max-w-[250px] leading-relaxed text-sm">
                The asynchronous video platform for teams who value clear communication.

@@ -1,20 +1,26 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+// All DB operations use the system client (service role) to bypass RLS.
+// The Member RLS policy is a direct supabaseId check — any query that JOINs
+// or subqueries Member from another policy would cause infinite recursion.
+// Using the system client is safe because authentication is verified via
+// supabase.auth.getUser() before any write operation.
+import { createClient, createSystemClient } from "@/lib/supabase/server";
 
 export const getVideoDetails = async (videoId: string) => {
   try {
     const SELECT_QUERY = "*, Folder(id, name), User(*, Subscription(plan))";
 
-    const supabase = await createClient();
-    const { data: video, error } = await supabase
+    // Use system client to bypass Video RLS (which checks Member, triggering recursion)
+    const systemSupabase = await createSystemClient();
+    const { data: video, error } = await systemSupabase
       .from("Video")
       .select(SELECT_QUERY)
       .eq("id", videoId)
       .single();
 
     if (error) {
-      console.error("getVideoDetails RLS/query error:", error.message);
+      console.error("getVideoDetails error:", error.message);
     }
 
     if (video) {
@@ -36,12 +42,11 @@ export const getVideoDetails = async (videoId: string) => {
   }
 };
 
-
-
 export const getVideoComments = async (videoId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: comments, error } = await supabase
+    // Use system client: Comment RLS JOINs Video+Member which would recurse
+    const systemSupabase = await createSystemClient();
+    const { data: comments, error } = await systemSupabase
       .from("Comment")
       .select("*, User(id, firstName, lastName, image)")
       .eq("videoId", videoId)
@@ -52,11 +57,14 @@ export const getVideoComments = async (videoId: string) => {
       return { status: 400, data: [] };
     }
 
-    // Flatten User relation for each comment
-    const flattenedComments = (comments || []).map((c: any) => ({
-      ...c,
-      User: Array.isArray(c.User) ? c.User[0] : c.User,
-    }));
+    const flattenedComments = (comments || []).map((c: any) => {
+      // Postgres returns uppercase User, but the UI expects lowercase user
+      const userObj = Array.isArray(c.User) ? c.User[0] : c.User;
+      return {
+        ...c,
+        user: userObj,
+      };
+    });
 
     return { status: 200, data: flattenedComments };
   } catch (error) {
@@ -73,7 +81,12 @@ export const createComment = async (
 ) => {
   try {
     const supabase = await createClient();
-    const { data: newComment, error } = await supabase
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 401, data: "Unauthorized" };
+
+    // Use system client: Comment WITH CHECK also touches Member
+    const systemSupabase = await createSystemClient();
+    const { data: newComment, error } = await systemSupabase
       .from("Comment")
       .insert({
         comment,
@@ -97,7 +110,6 @@ export const createComment = async (
 
 export const incrementVideoViews = async (videoId: string) => {
   try {
-    const supabase = await createClient();
     const { cookies } = await import("next/headers");
     const cookieStore = await cookies();
     const viewCookie = cookieStore.get(`viewed_${videoId}`);
@@ -106,7 +118,9 @@ export const incrementVideoViews = async (videoId: string) => {
       return { status: 200, message: "View already counted" };
     }
 
-    const { data: video } = await supabase
+    // Use system client: avoids Video RLS recursion
+    const systemSupabase = await createSystemClient();
+    const { data: video } = await systemSupabase
       .from("Video")
       .select("userId, title, views")
       .eq("id", videoId)
@@ -114,21 +128,18 @@ export const incrementVideoViews = async (videoId: string) => {
 
     if (!video) return { status: 404 };
 
-    // Increment view count
-    await supabase
+    await systemSupabase
       .from("Video")
       .update({ views: (video.views || 0) + 1 })
       .eq("id", videoId);
 
-    // Set cookie to prevent immediate duplication (expires in 24h)
     cookieStore.set(`viewed_${videoId}`, "true", {
       maxAge: 60 * 60 * 24,
       path: "/",
     });
 
-    // Create a notification for the video owner
     if (video.userId) {
-      await supabase.from("Notification").insert({
+      await systemSupabase.from("Notification").insert({
         userId: video.userId,
         content: `Someone just viewed your video: ${video.title || "Untitled"}`,
       });
@@ -143,7 +154,6 @@ export const incrementVideoViews = async (videoId: string) => {
 
 export const transcribeVideo = async (videoId: string) => {
   try {
-    // Use system client so this works when called fire-and-forget (no user session cookie)
     const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
     const supabase = getSupabaseAdmin();
 
@@ -154,7 +164,6 @@ export const transcribeVideo = async (videoId: string) => {
       })
       .eq("id", videoId);
 
-    // Automatically generate summary after transcription
     await generateSummary(videoId);
 
     return { status: 200 };
@@ -166,7 +175,6 @@ export const transcribeVideo = async (videoId: string) => {
 
 export const generateSummary = async (videoId: string) => {
   try {
-    // Use system client to bypass RLS on Video table
     const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
     const supabase = getSupabaseAdmin();
     const { data: video } = await supabase

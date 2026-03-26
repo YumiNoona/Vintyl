@@ -18,7 +18,7 @@ type RecordingContextType = {
 
 const RecordingContext = createContext<RecordingContextType | undefined>(undefined);
 
-export function RecordingProvider({ children }: { children: ReactNode }) {
+export function RecordingProvider({ children, plan = "FREE" }: { children: ReactNode; plan?: string }) {
   const [isRecording, setIsRecording] = useState(false);
   const [recordedVideo, setRecordedVideo] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -30,10 +30,12 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+      const constraints = {
+        video: plan === "FREE" ? { width: { max: 1280 }, height: { max: 720 } } : true,
         audio: true,
-      });
+      } as DisplayMediaStreamOptions;
+
+      const stream = await navigator.mediaDevices.getDisplayMedia(constraints);
 
       streamRef.current = stream;
       chunksRef.current = [];
@@ -74,7 +76,8 @@ export function RecordingProvider({ children }: { children: ReactNode }) {
     try {
       const response = await fetch(recordedVideo);
       const videoBlob = await response.blob();
-      const fileName = `web-record-${Date.now()}.webm`;
+      const randomSuffix = Math.random().toString(36).substring(7);
+      const fileName = `vintyl-${userId}-${Date.now()}-${randomSuffix}.webm`;
       
       console.log("🚀 Starting upload to /api/upload...");
       const res = await fetch("/api/upload", {

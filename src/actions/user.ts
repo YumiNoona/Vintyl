@@ -115,7 +115,8 @@ export const onAuthenticatedUser = cache(async () => {
 
       if (wsId) {
         // Ensure Membership exists (Idempotent)
-        await systemSupabase.from("Member").upsert({ userId: newUser.id, workspaceId: wsId, supabaseId: user.id }, { onConflict: 'userId, workspaceId' });
+        // FIX #9: onConflict key must match actual UNIQUE constraint: (workspaceId, supabaseId)
+        await systemSupabase.from("Member").upsert({ userId: newUser.id, workspaceId: wsId, supabaseId: user.id }, { onConflict: 'workspaceId, supabaseId' });
 
         // Return enriched user
         const { data: enrichedUser, error: enrichError } = await systemSupabase
@@ -163,9 +164,10 @@ export const getNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: [] };
 
+    // FIX #7: Select inviteId so the activity page can pass it to InviteAcceptButton
     const { data: notifications } = await supabase
       .from("User")
-      .select("Notification(*)")
+      .select("Notification(id, content, createdAt, inviteId)")
       .eq("supabaseId", user.id)
       .single();
 

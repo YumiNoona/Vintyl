@@ -97,9 +97,11 @@ export default async function WorkspaceLayout({
     queryFn: getNotifications,
   });
 
+  const userPlan = (auth.user?.subscription as any)?.plan || "FREE";
+
   return (
     <HydrationBoundary state={dehydrate(query)}>
-      <RecordingProvider>
+      <RecordingProvider plan={userPlan}>
         <div className="flex h-screen w-screen overflow-hidden bg-background text-foreground">
           <Sidebar activeWorkspaceId={workspaceId} />
           <div className="flex flex-col flex-1 relative overflow-hidden">
