@@ -30,9 +30,9 @@ export default function AnalyticsChart() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h3 className="text-xl font-bold text-foreground">Performance Overview</h3>
-            <p className="text-xs text-muted-foreground mt-1 tracking-wide uppercase font-black opacity-50">Views over last 7 days</p>
+            <p className="text-eyebrow mt-1 opacity-70">Views over last 7 days</p>
           </div>
-          <div className="flex items-center gap-2 bg-purple-500/10 text-purple-600 dark:text-purple-400 px-3 py-1.5 rounded-full text-xs font-bold border border-purple-500/20">
+          <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1.5 rounded-full text-caption font-medium border border-primary/20">
             <TrendingUp size={14} />
             +12.5% vs last week
           </div>
@@ -90,8 +90,8 @@ export default function AnalyticsChart() {
              <Play size={80} />
            </div>
            <div>
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Total Plays</p>
-             <h4 className="text-2xl font-black text-foreground mt-2">1,284</h4>
+             <p className="text-eyebrow leading-none">Total Plays</p>
+             <h4 className="text-2xl font-semibold text-foreground mt-2">1,284</h4>
            </div>
            <div className="bg-purple-500/20 p-2.5 rounded-xl text-purple-500">
              <Play size={20} fill="currentColor" />
@@ -103,8 +103,8 @@ export default function AnalyticsChart() {
               <Users size={80} />
            </div>
            <div>
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Total Views</p>
-             <h4 className="text-2xl font-black text-foreground mt-2">942</h4>
+             <p className="text-eyebrow leading-none">Total Views</p>
+             <h4 className="text-2xl font-semibold text-foreground mt-2">942</h4>
            </div>
            <div className="bg-blue-500/20 p-2.5 rounded-xl text-blue-500">
              <Users size={20} />
@@ -116,8 +116,8 @@ export default function AnalyticsChart() {
              <Clock size={80} />
            </div>
            <div>
-             <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest leading-none">Avg Watch Time</p>
-             <h4 className="text-2xl font-black text-foreground mt-2">2:45</h4>
+             <p className="text-eyebrow leading-none">Avg Watch Time</p>
+             <h4 className="text-2xl font-semibold text-foreground mt-2">2:45</h4>
            </div>
            <div className="bg-amber-500/20 p-2.5 rounded-xl text-amber-500">
              <Clock size={20} />

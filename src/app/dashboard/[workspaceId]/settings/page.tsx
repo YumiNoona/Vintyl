@@ -97,14 +97,14 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="pb-20">
+    <div className="pb-20 space-y-8">
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white border border-white/10 shadow-xl shadow-white/5">
            <SettingsIcon size={20} />
         </div>
         <div>
-          <h1 className="text-3xl font-black tracking-tighter text-white uppercase">Settings</h1>
-          <p className="text-neutral-500 text-[10px] uppercase font-black tracking-widest opacity-60">Workspace & Account Control</p>
+          <h1 className="text-page-title">Settings</h1>
+          <p className="text-eyebrow opacity-80">Workspace and account control</p>
         </div>
       </div>
 
@@ -112,8 +112,8 @@ export default function SettingsPage() {
         {/* Left Column: Profile */}
         <div className="space-y-8">
           {/* Profile Form */}
-          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
-            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+          <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+            <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <User size={16} className="text-white" />
               General Profile
             </h2>
@@ -124,7 +124,7 @@ export default function SettingsPage() {
                      {user?.user_metadata?.avatar_url ? (
                         <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-white text-black font-black text-3xl">
+                        <div className="w-full h-full flex items-center justify-center bg-white text-black font-semibold text-3xl">
                            {firstName?.charAt(0)}
                         </div>
                      )}
@@ -135,40 +135,40 @@ export default function SettingsPage() {
                   </label>
                </div>
                <div className="space-y-1">
-                  <p className="font-black text-xl text-white tracking-tight leading-none">{firstName} {lastName}</p>
-                  <p className="text-neutral-500 text-sm font-medium">{email}</p>
+                  <p className="font-semibold text-xl text-foreground tracking-tight leading-none">{firstName} {lastName}</p>
+                  <p className="text-body-sm">{email}</p>
                </div>
             </div>
 
             <form onSubmit={handleUpdateProfile} className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">First Name</label>
+                  <label className="text-eyebrow ml-1">First Name</label>
                   <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">Last Name</label>
+                  <label className="text-eyebrow ml-1">Last Name</label>
                   <Input value={lastName} onChange={(e) => setLastName(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-white hover:bg-neutral-200 text-black font-black h-12 rounded-2xl shadow-xl shadow-white/5 uppercase tracking-widest text-[10px]">
+              <Button type="submit" disabled={loading} className="w-full bg-foreground hover:bg-foreground/90 text-background font-semibold h-12 rounded-2xl shadow-lg text-sm">
                  {loading ? <Loader2 className="animate-spin" /> : "Save Profile Details"}
               </Button>
             </form>
           </section>
 
           {/* Email Form */}
-          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
-            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+          <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+            <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <Mail size={16} className="text-white" />
               Email Address
             </h2>
             <form onSubmit={handleUpdateEmail} className="space-y-6">
                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">Update Email</label>
+                  <label className="text-eyebrow ml-1">Update Email</label>
                   <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" />
                </div>
-               <Button type="submit" variant="secondary" disabled={loading} className="w-full bg-white/5 hover:bg-white/10 text-white font-black h-12 rounded-2xl border border-white/10 uppercase tracking-widest text-[10px]">
+               <Button type="submit" variant="secondary" disabled={loading} className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-semibold h-12 rounded-2xl border border-border text-sm">
                  Request Email Change
                </Button>
             </form>
@@ -178,37 +178,37 @@ export default function SettingsPage() {
         {/* Right Column: Security & Workspace */}
         <div className="space-y-8">
            {/* Password Form */}
-           <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
-            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+           <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+            <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <Lock size={16} className="text-white" />
               Security
             </h2>
             <form onSubmit={handleChangePassword} className="space-y-6">
                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-neutral-500 ml-1">New Password</label>
+                  <label className="text-eyebrow ml-1">New Password</label>
                   <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-white/5 h-12 border-white/5 rounded-2xl focus:border-white/20 transition-all font-bold" placeholder="••••••••" />
                </div>
-               <Button type="submit" variant="secondary" disabled={loading || !newPassword} className="w-full bg-white/5 hover:bg-white/10 text-white font-black h-12 rounded-2xl border border-white/10 uppercase tracking-widest text-[10px]">
+               <Button type="submit" variant="secondary" disabled={loading || !newPassword} className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-semibold h-12 rounded-2xl border border-border text-sm">
                  Update Password
                </Button>
             </form>
           </section>
 
           {/* Desktop App Linking */}
-          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
-            <h2 className="text-sm font-black tracking-widest mb-8 flex items-center gap-3 uppercase text-neutral-500">
+          <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+            <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <Monitor size={16} className="text-white" />
               Desktop App
             </h2>
             <div className="space-y-6">
-               <p className="text-neutral-400 text-xs leading-relaxed font-medium">
+               <p className="text-body-sm">
                 Copy your User ID and paste it into the Vintyl Desktop app to link your account and enable high-performance recording.
               </p>
               <div className="flex gap-2">
                 <Input 
                   readOnly 
                   value={user?.id || ""} 
-                  className="bg-white/5 h-12 border-white/5 rounded-2xl font-mono text-[10px] text-white/50" 
+                  className="bg-white/5 h-12 border-white/5 rounded-2xl font-mono text-xs text-white/50"
                 />
                 <Button 
                   variant="secondary" 
@@ -227,18 +227,18 @@ export default function SettingsPage() {
           </section>
 
           {/* Members (Moved here) */}
-          <section className="bg-neutral-900 border border-white/10 rounded-3xl p-8 backdrop-blur-xl shadow-2xl shadow-white/5">
-            <h2 className="text-sm font-black tracking-widest mb-6 flex items-center gap-3 uppercase text-neutral-500">
+          <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
+            <h2 className="text-eyebrow mb-6 flex items-center gap-3">
               <Users size={16} className="text-white" />
               Workspace Members
             </h2>
             <div className="space-y-6">
-               <p className="text-neutral-400 text-xs leading-relaxed font-medium">
+               <p className="text-body-sm">
                 Invite team members and manage collaborators for this workspace. Use email addresses to send secure invitations.
               </p>
               <Modal
                 trigger={
-                   <Button className="w-full bg-white hover:bg-neutral-200 text-black font-black h-12 rounded-2xl shadow-xl shadow-white/5 gap-2 uppercase tracking-widest text-[10px]">
+                   <Button className="w-full bg-foreground hover:bg-foreground/90 text-background font-semibold h-12 rounded-2xl shadow-lg gap-2 text-sm">
                       <PlusCircle size={16} />
                       Invite Member
                    </Button>

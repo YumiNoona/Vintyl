@@ -81,13 +81,13 @@ export default function VideoPreviewContent({
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white p-6 lg:p-10">
+    <div className="min-h-screen bg-background text-foreground p-6 lg:p-10">
       <div className="max-w-7xl mx-auto space-y-6">
         <button 
           onClick={() => router.back()}
-          className="flex items-center gap-2 text-neutral-400 hover:text-white transition-colors group mb-2"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors group mb-2"
         >
-          <div className="p-1.5 rounded-lg bg-neutral-900 border border-white/5 group-hover:border-white/10 group-hover:bg-neutral-800 transition-all">
+            <div className="p-1.5 rounded-lg bg-card border border-border group-hover:border-foreground/20 group-hover:bg-secondary transition-all">
             <ChevronLeft size={18} />
           </div>
           <span className="text-sm font-medium">Back to Dashboard</span>
@@ -109,7 +109,7 @@ export default function VideoPreviewContent({
 
             <div className="space-y-4">
               <div className="flex justify-between items-start gap-4 flex-wrap md:flex-nowrap">
-                <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight leading-tight flex-1 break-all md:break-words">
+                <h1 className="text-page-title md:text-[2rem] tracking-tight leading-tight flex-1 break-all md:break-words">
                   {video.title || "Untitled Video"}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1">
@@ -123,7 +123,7 @@ export default function VideoPreviewContent({
                   <ShareModal
                     videoId={video.id}
                     trigger={
-                      <button className="flex items-center gap-2 bg-white hover:bg-neutral-200 text-black px-5 py-2.5 rounded-xl text-sm font-black transition-all shadow-xl shadow-white/5 active:scale-95">
+                      <button className="flex items-center gap-2 bg-foreground hover:bg-foreground/90 text-background px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg active:scale-95">
                         <Share2 size={16} />
                         Share Video
                       </button>
@@ -132,7 +132,7 @@ export default function VideoPreviewContent({
                   <EmbedModal
                     videoId={video.id}
                     trigger={
-                      <span className="flex items-center gap-2 bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 rounded-xl text-sm font-black transition-all border border-white/5 cursor-pointer active:scale-95">
+                      <span className="flex items-center gap-2 bg-card hover:bg-secondary text-foreground px-5 py-2.5 rounded-xl text-sm font-semibold transition-all border border-border cursor-pointer active:scale-95">
                         <Code size={16} />
                         Embed
                       </span>
@@ -141,15 +141,15 @@ export default function VideoPreviewContent({
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 text-neutral-400 text-sm">
+              <div className="flex items-center gap-6 text-muted-foreground text-sm">
                 <div className="flex items-center gap-1.5">
                   <Avatar className="w-8 h-8 border border-white/10">
                     <AvatarImage src={video.user?.image || ""} />
                     <AvatarFallback><User size={14} /></AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col">
-                     <span className="font-bold text-white leading-none text-sm">{video.user?.firstName} {video.user?.lastName}</span>
-                     <span className="text-xs text-muted-foreground uppercase font-black tracking-widest">{createdDate.toLocaleDateString()}</span>
+                     <span className="font-semibold text-foreground leading-none text-sm">{video.user?.firstName} {video.user?.lastName}</span>
+                     <span className="text-eyebrow">{createdDate.toLocaleDateString()}</span>
                   </div>
                 </div>
                 <div className="h-6 w-px bg-white/5" />
@@ -178,21 +178,21 @@ export default function VideoPreviewContent({
               </TabsList>
               
               <TabsContent value="summary" className="mt-6 space-y-4 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2 text-white font-black text-xxs uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-eyebrow text-foreground">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
                   AI Summary
                 </div>
                 {video.summary ? (
-                   <div className="p-6 bg-white/[0.03] border border-white/10 rounded-3xl text-sm text-neutral-400 leading-relaxed font-bold">
+                   <div className="p-6 bg-card border border-border rounded-3xl text-body-sm leading-relaxed font-medium">
                      "{video.summary}"
                    </div>
                 ) : (
                   PLAN_LIMITS[video.user?.subscription?.plan || "FREE"].ai ? (
                     <AISummaryButton videoId={video.id} plan={video.user?.subscription?.plan || "FREE"} />
                   ) : (
-                    <div className="p-6 bg-white/[0.03] border border-dashed border-white/10 rounded-3xl text-sm text-neutral-500 italic">
+                    <div className="p-6 bg-card border border-dashed border-border rounded-3xl text-body-sm italic">
                       AI summaries are available on PRO and Team plans. 
-                      <button onClick={() => router.push("/billing")} className="ml-2 text-white font-black not-italic hover:underline">
+                      <button onClick={() => router.push("/billing")} className="ml-2 text-foreground font-semibold not-italic hover:underline">
                         Upgrade Now
                       </button>
                     </div>

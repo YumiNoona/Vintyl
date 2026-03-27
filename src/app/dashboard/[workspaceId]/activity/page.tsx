@@ -8,8 +8,11 @@ export default async function ActivityPage() {
   const activities = await getNotifications();
 
   return (
-    <div>
-      <h1 className="text-3xl font-black text-foreground mb-8 tracking-tight">Activity</h1>
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h1 className="text-page-title">Activity</h1>
+        <p className="text-body-sm">Recent events across your workspace.</p>
+      </div>
       {activities.status === 200 && activities.data ? (
         <div className="flex flex-col gap-4">
           {(activities.data as any).notifications?.map(
@@ -25,13 +28,13 @@ export default async function ActivityPage() {
                   />
                 </div>
                 <div className="flex-1 pt-1">
-                  <p className="text-foreground text-sm font-bold leading-relaxed">
+                  <p className="text-foreground text-sm font-medium leading-relaxed">
                     {activity.content}
                   </p>
                   {activity.content.includes("invited") && (
                     <InviteAcceptButton inviteId={activity.id} />
                   )}
-                  <p className="text-muted-foreground text-[10px] mt-2 font-black uppercase tracking-widest bg-secondary w-fit px-2 py-0.5 rounded">
+                  <p className="text-eyebrow mt-2 bg-secondary w-fit px-2 py-0.5 rounded">
                     {new Date(activity.createdAt).toLocaleDateString()}
                   </p>
                 </div>
@@ -44,7 +47,7 @@ export default async function ActivityPage() {
           <div className="bg-secondary p-6 rounded-full mb-6 ring-1 ring-border shadow-inner">
             <CheckCircle size={48} className="text-muted-foreground opacity-20" />
           </div>
-          <p className="text-xl font-black text-foreground">All caught up!</p>
+          <p className="text-xl font-semibold text-foreground">All caught up!</p>
           <p className="text-sm mt-2 font-medium">No new activity to show right now</p>
         </div>
       )}

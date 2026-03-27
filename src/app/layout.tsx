@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${inter.className} bg-[#050505] text-white selection:bg-purple-500/30`}
+        className={`${inter.className} bg-background text-foreground selection:bg-primary/20 selection:text-foreground`}
       >
         <ThemeProvider
           attribute="class"

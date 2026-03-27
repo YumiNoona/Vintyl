@@ -32,22 +32,22 @@ export default function ShareModal({ videoId, trigger }: ShareModalProps) {
     <Modal trigger={trigger} title="Share Video" description="Share this video via link or embed it anywhere.">
       <div onClick={(e) => e.stopPropagation()}>
         <Tabs defaultValue="link" className="w-full mt-4">
-          <TabsList className="grid w-full grid-cols-2 bg-neutral-900 border border-white/5">
-            <TabsTrigger value="link" className="data-[state=active]:bg-neutral-800 rounded-md py-1.5 text-xs font-bold">Copy Link</TabsTrigger>
-            <TabsTrigger value="embed" className="data-[state=active]:bg-neutral-800 rounded-md py-1.5 text-xs font-bold">Embed Code</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-secondary border border-border">
+            <TabsTrigger value="link" className="data-[state=active]:bg-background rounded-md py-1.5 text-sm font-medium">Copy Link</TabsTrigger>
+            <TabsTrigger value="embed" className="data-[state=active]:bg-background rounded-md py-1.5 text-sm font-medium">Embed Code</TabsTrigger>
           </TabsList>
           <TabsContent value="link" className="space-y-4 mt-4">
-            <div className="flex bg-neutral-900 border border-white/10 rounded-lg p-3 items-center justify-between">
-              <span className="text-sm text-neutral-400 truncate max-w-[280px]">{link}</span>
-              <Button size="sm" onClick={onCopyLink} className="bg-white hover:bg-neutral-200 text-black font-black h-8 gap-2 flex-shrink-0 ml-4 rounded-lg transform active:scale-95 transition-all text-[10px] uppercase tracking-widest">
+            <div className="flex bg-card border border-border rounded-lg p-3 items-center justify-between">
+              <span className="text-body-sm truncate max-w-[280px]">{link}</span>
+              <Button size="sm" onClick={onCopyLink} className="bg-foreground hover:bg-foreground/90 text-background font-semibold h-8 gap-2 flex-shrink-0 ml-4 rounded-lg transform active:scale-95 transition-all text-xs">
                 {copiedLink ? <Check size={14} /> : <Copy size={14} />}
                 {copiedLink ? "Copied" : "Copy Link"}
               </Button>
             </div>
           </TabsContent>
           <TabsContent value="embed" className="space-y-4 mt-4">
-            <div className="flex flex-col bg-neutral-900 border border-white/10 rounded-lg p-3 gap-3">
-              <code className="text-xs text-neutral-400 break-all bg-black p-2 rounded-md font-mono">
+            <div className="flex flex-col bg-card border border-border rounded-lg p-3 gap-3">
+              <code className="text-xs text-muted-foreground break-all bg-background p-2 rounded-md font-mono">
                 {embedCode}
               </code>
               <div className="flex justify-end">

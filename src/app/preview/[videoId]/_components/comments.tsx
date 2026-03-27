@@ -70,9 +70,9 @@ export default function Comments({ videoId, user }: CommentsProps) {
   const getReplies = (parentId: string) => comments.filter((c) => c.commentId === parentId);
 
   return (
-    <div className="p-4 bg-neutral-800/40 rounded-xl border border-white/5">
-      <h3 className="font-semibold mb-6 text-neutral-200 flex items-center gap-2">
-        Comments <span className="text-xs font-normal text-neutral-500 bg-neutral-900 px-2 py-0.5 rounded-full">{comments.length}</span>
+    <div className="p-4 bg-card/60 rounded-xl border border-border">
+      <h3 className="text-lg font-semibold mb-6 text-foreground flex items-center gap-2">
+        Comments <span className="text-caption bg-secondary px-2 py-0.5 rounded-full">{comments.length}</span>
       </h3>
 
       {/* Main Input area */}
@@ -86,14 +86,14 @@ export default function Comments({ videoId, user }: CommentsProps) {
             value={newComment}
             onChange={(e) => setNewComment(e.target.value)}
             placeholder="Add a comment..."
-            className="w-full bg-neutral-900/50 border-neutral-700 min-h-[80px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-purple-500 rounded-lg p-3"
+            className="w-full bg-background border-border min-h-[80px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary rounded-lg p-3"
           />
           <div className="flex justify-end mt-2">
             <Button
               onClick={() => handlePostComment()}
               disabled={isPosting || !newComment.trim()}
               size="sm"
-              className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 h-8"
+              className="bg-foreground hover:bg-foreground/90 text-background rounded-full px-4 h-8 font-medium"
             >
               {isPosting && !replyingTo ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Send className="w-3 h-3 mr-2" />}
               Post
@@ -105,11 +105,11 @@ export default function Comments({ videoId, user }: CommentsProps) {
       {/* Comments List */}
       {isLoading ? (
         <div className="flex justify-center p-8">
-          <Loader2 className="w-6 h-6 animate-spin text-purple-500" />
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
         </div>
       ) : threads.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-white/5 rounded-xl">
-           <p className="text-neutral-500 text-sm">No discussions yet.</p>
+           <p className="text-body-sm">No discussions yet.</p>
         </div>
       ) : (
         <div className="space-y-8">
@@ -122,18 +122,18 @@ export default function Comments({ videoId, user }: CommentsProps) {
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-semibold text-neutral-200">
+                    <span className="text-sm font-semibold text-foreground">
                       {comment.user?.firstName} {comment.user?.lastName}
                     </span>
                     <span className="text-xs text-muted-foreground">
                       {new Date(comment.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm text-neutral-300 whitespace-pre-wrap leading-relaxed">{comment.comment}</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap leading-relaxed">{comment.comment}</p>
                   
                   <button 
                     onClick={() => setReplyingTo(replyingTo === comment.id ? null : comment.id)}
-                    className="text-sm font-medium text-neutral-500 hover:text-purple-400 mt-2 transition-colors uppercase tracking-widest"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground mt-2 transition-colors"
                   >
                     Reply
                   </button>
@@ -147,15 +147,15 @@ export default function Comments({ videoId, user }: CommentsProps) {
                           autoFocus
                           onChange={(e) => setReplyText(e.target.value)}
                           placeholder="Write a reply..."
-                          className="w-full bg-neutral-900 border-neutral-700 min-h-[60px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-purple-500 rounded-lg p-3"
+                          className="w-full bg-background border-border min-h-[60px] text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary rounded-lg p-3"
                         />
                         <div className="flex justify-end gap-2 mt-2">
-                           <Button variant="ghost" size="xs" onClick={() => setReplyingTo(null)} className="h-7 text-[10px]">Cancel</Button>
+                           <Button variant="ghost" size="xs" onClick={() => setReplyingTo(null)} className="h-7 text-xs">Cancel</Button>
                            <Button
                              onClick={() => handlePostComment(comment.id)}
                              disabled={isPosting || !replyText.trim()}
                              size="sm"
-                             className="bg-purple-600 hover:bg-purple-700 text-white rounded-full px-4 h-7 text-xs"
+                             className="bg-foreground hover:bg-foreground/90 text-background rounded-full px-4 h-7 text-xs"
                            >
                              Post Reply
                            </Button>
@@ -176,14 +176,14 @@ export default function Comments({ videoId, user }: CommentsProps) {
                     </Avatar>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm font-semibold text-neutral-200">
+                        <span className="text-sm font-semibold text-foreground">
                           {reply.user?.firstName} {reply.user?.lastName}
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {new Date(reply.createdAt).toLocaleDateString()}
                         </span>
                       </div>
-                      <p className="text-sm text-neutral-300 leading-relaxed whitespace-pre-wrap">{reply.comment}</p>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{reply.comment}</p>
                     </div>
                   </div>
                 ))}

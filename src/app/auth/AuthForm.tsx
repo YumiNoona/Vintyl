@@ -3,7 +3,6 @@
 import { login, signup } from "@/actions/auth";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useEffect, useActionState } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Mail, Loader2 } from "lucide-react";
 
@@ -78,12 +77,12 @@ export function AuthForm() {
 
   if (emailSent) {
     return (
-      <div className="w-full max-w-md space-y-8 bg-secondary/10 p-10 rounded-3xl border border-border backdrop-blur-xl text-center animate-in fade-in zoom-in duration-500">
+      <div className="w-full max-w-md space-y-8 bg-card p-10 rounded-3xl border border-border backdrop-blur-xl text-center animate-in fade-in zoom-in duration-500">
         <div className="bg-purple-500/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
           <Mail className="text-purple-400" size={32} />
         </div>
-        <h1 className="text-3xl font-black text-white tracking-tighter">Check your email</h1>
-        <p className="text-muted-foreground leading-relaxed">
+        <h1 className="text-page-title">Check your email</h1>
+        <p className="text-body">
           We&apos;ve sent a confirmation link to your inbox. <br />
           Please confirm your email to continue.
         </p>
@@ -92,7 +91,7 @@ export function AuthForm() {
             setEmailSent(false);
             router.replace("/auth?mode=signin");
           }} 
-          className="w-full bg-secondary/30 hover:bg-secondary/40 text-white font-bold py-3 rounded-xl transition-all mt-4"
+          className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-medium py-3 rounded-xl transition-all mt-4"
         >
           Back to Sign In
         </button>
@@ -101,13 +100,13 @@ export function AuthForm() {
   }
 
   return (
-    <div className="w-full max-w-md space-y-8 bg-secondary/10 p-8 rounded-3xl border border-border backdrop-blur-xl transition-all duration-500">
+    <div className="w-full max-w-md space-y-8 bg-card p-8 rounded-3xl border border-border backdrop-blur-xl transition-all duration-500">
         <div className="text-center flex flex-col items-center">
-          <div className="w-10 h-10 rounded-md bg-white flex items-center justify-center text-black font-bold text-lg mb-4">
+          <div className="w-10 h-10 rounded-md bg-foreground flex items-center justify-center text-background font-semibold text-lg mb-4">
             V
           </div>
-          <h1 className="text-3xl font-black text-foreground tracking-tighter">Vintyl Auth</h1>
-          <p className="text-muted-foreground mt-1">Sign in or create an account to start recording</p>
+          <h1 className="text-page-title">Vintyl Auth</h1>
+          <p className="text-body-sm mt-1">Sign in or create an account to start recording</p>
         </div>
 
         <div className="w-full">
@@ -115,17 +114,17 @@ export function AuthForm() {
             <div className="animate-in fade-in slide-in-from-left-4 duration-300">
               <form action={loginAction} onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Email Address</label>
-                  <input name="email" type="email" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
+                  <label className="text-eyebrow ml-1">Email Address</label>
+                  <input name="email" type="email" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Password</label>
-                  <input name="password" type="password" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
+                  <label className="text-eyebrow ml-1">Password</label>
+                  <input name="password" type="password" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
                 </div>
                 <button 
                   disabled={isLoginPending}
                   type="submit" 
-                  className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2 uppercase tracking-tight"
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background font-semibold py-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
                 >
                   {isLoginPending ? <><Loader2 className="animate-spin" size={20} /> Signing In...</> : "Sign In"}
                 </button>
@@ -135,27 +134,27 @@ export function AuthForm() {
             <div className="animate-in fade-in slide-in-from-right-4 duration-300">
               <form action={signupAction} onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Name</label>
+                  <label className="text-eyebrow ml-1">Name</label>
                   <input
                     name="full_name"
                     type="text"
                     placeholder="Jane Doe"
                     required
-                    className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Email Address</label>
-                  <input name="email" type="email" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="name@example.com" />
+                  <label className="text-eyebrow ml-1">Email Address</label>
+                  <input name="email" type="email" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs text-neutral-500 ml-1 uppercase font-bold tracking-widest">Password</label>
-                  <input name="password" type="password" required className="w-full bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-2 focus:outline-none focus:border-white/20 transition-all font-bold placeholder:text-neutral-600 text-white" placeholder="••••••••" />
+                  <label className="text-eyebrow ml-1">Password</label>
+                  <input name="password" type="password" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
                 </div>
                 <button 
                   disabled={isSignupPending}
                   type="submit" 
-                  className="w-full bg-white hover:bg-neutral-200 text-black font-black py-4 rounded-xl transition-all shadow-xl shadow-white/5 active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2 uppercase tracking-tight"
+                  className="w-full bg-foreground hover:bg-foreground/90 text-background font-semibold py-4 rounded-xl transition-all shadow-lg active:scale-95 disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
                 >
                   {isSignupPending ? <><Loader2 className="animate-spin" size={20} /> Creating Account...</> : "Create Account"}
                 </button>
@@ -165,7 +164,7 @@ export function AuthForm() {
         </div>
         
         {/* Bottom CTA UX */}
-        <p className="text-xs text-neutral-500 text-center mt-4">
+        <p className="text-caption text-center mt-4">
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
@@ -174,7 +173,7 @@ export function AuthForm() {
                   setMode("signup");
                   router.push("/auth?mode=signup");
                 }}
-                className="text-white font-medium hover:underline"
+                className="text-foreground font-medium hover:underline"
               >
                 Create one
               </button>
@@ -187,7 +186,7 @@ export function AuthForm() {
                   setMode("signin");
                   router.push("/auth?mode=signin");
                 }}
-                className="text-white font-medium hover:underline"
+                className="text-foreground font-medium hover:underline"
               >
                 Log in
               </button>

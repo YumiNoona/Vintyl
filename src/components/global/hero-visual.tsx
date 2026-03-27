@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 
 export default function HeroVisual() {
   return (
-    <div className="relative h-[500px] w-full flex items-center justify-center overflow-hidden rounded-3xl border border-white/5 bg-[#050505] shadow-2xl">
+    <div className="relative h-[500px] w-full flex items-center justify-center overflow-hidden rounded-3xl border border-border bg-background shadow-2xl">
       {/* Abstract Background Shapes */}
       <motion.div
         animate={{ 
@@ -33,7 +33,7 @@ export default function HeroVisual() {
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, delay: 0.2 }}
-        className="relative z-10 w-[80%] aspect-video bg-neutral-900/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-indigo-500/10 shadow-2xl overflow-hidden"
+        className="relative z-10 w-[80%] aspect-video bg-card/70 backdrop-blur-sm border border-border rounded-2xl p-6 shadow-indigo-500/10 shadow-2xl overflow-hidden"
       >
         <div className="flex gap-2 mb-6">
           <div className="w-3 h-3 rounded-full bg-red-500/50" />
@@ -62,7 +62,7 @@ export default function HeroVisual() {
         <motion.div
           animate={{ y: [0, -10, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-10 right-10 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-1 rounded-full text-[10px] font-bold tracking-tighter shadow-lg"
+          className="absolute top-10 right-10 bg-gradient-to-r from-purple-600 to-pink-600 px-4 py-1 rounded-full text-eyebrow text-white shadow-lg"
         >
           AI POWERED
         </motion.div>

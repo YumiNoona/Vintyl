@@ -38,16 +38,16 @@ function SupabaseUserButton() {
     <div className="relative group">
       <button
         onClick={handleSignOut}
-        className="w-10 h-10 rounded-full border-2 border-white/10 bg-neutral-900 overflow-hidden flex items-center justify-center hover:border-white transition-all shadow-sm active:scale-95"
+        className="size-10 rounded-full border border-border bg-card overflow-hidden flex items-center justify-center hover:border-foreground/20 transition-all shadow-sm active:scale-95"
         title={`Sign out (${user?.email || ""})`}
       >
         {user?.image ? (
           <img src={user.image} alt="Profile" className="w-full h-full object-cover" />
         ) : (
-          <span className="text-white text-sm font-bold">{initial}</span>
+          <span className="text-sm font-semibold text-foreground">{initial}</span>
         )}
       </button>
-      <div className="absolute right-0 top-12 hidden group-hover:flex items-center gap-1.5 bg-neutral-900 border border-white/10 rounded-lg px-3 py-2 text-xs text-neutral-400 whitespace-nowrap shadow-xl z-50">
+      <div className="absolute right-0 top-12 hidden group-hover:flex items-center gap-1.5 bg-popover border border-border rounded-lg px-3 py-2 text-caption whitespace-nowrap shadow-xl z-50">
         <LogOut size={12} />
         Sign out
       </div>
@@ -104,23 +104,23 @@ export default function DashboardNavbar({
             >
               {({ setOpen }: { setOpen: (open: boolean) => void }) => (
                 <div className="flex flex-col gap-5 mt-6">
-                  <div className="group border border-white/10 rounded-2xl p-6 flex flex-col gap-4 bg-white/5 transition-all hover:bg-white/10 hover:border-white/20 shadow-sm">
+                    <div className="group border border-border rounded-2xl p-6 flex flex-col gap-4 bg-card/70 transition-all hover:bg-card hover:border-foreground/20 shadow-sm">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1.5">
-                        <h4 className="font-bold text-white text-lg tracking-tight uppercase">Desktop Recorder</h4>
-                        <p className="text-[10px] text-neutral-500 font-black uppercase tracking-widest opacity-70">Recommended</p>
+                        <h4 className="text-lg font-semibold text-foreground tracking-tight">Desktop Recorder</h4>
+                        <p className="text-eyebrow">Recommended</p>
                       </div>
-                      <div className="p-2 rounded-xl bg-white/5 text-white">
+                      <div className="p-2 rounded-xl bg-secondary text-foreground">
                         <MonitorUp size={20} />
                       </div>
                     </div>
-                    <ul className="text-xs text-neutral-400 space-y-2 font-bold uppercase tracking-wider">
+                    <ul className="text-body-sm space-y-2">
                       <li className="flex items-center gap-2">
-                        <div className="size-1 rounded-full bg-white" />
+                        <div className="size-1 rounded-full bg-foreground" />
                         Full screen & camera recording
                       </li>
                       <li className="flex items-center gap-2">
-                        <div className="size-1 rounded-full bg-white" />
+                        <div className="size-1 rounded-full bg-foreground" />
                         System audio capture
                       </li>
                     </ul>
@@ -129,7 +129,7 @@ export default function DashboardNavbar({
                         setOpen(false);
                         handleOpenDesktopApp();
                       }}
-                      className="w-full gap-2 bg-white hover:bg-neutral-200 text-black h-12 rounded-xl font-black mt-2 shadow-xl shadow-white/5 active:scale-95 transition-all uppercase tracking-tight"
+                      className="w-full gap-2 bg-foreground hover:bg-foreground/90 text-background h-12 rounded-xl font-semibold mt-2 shadow-lg active:scale-95 transition-all"
                     >
                       <Download size={18} />
                       Get Desktop App
@@ -139,14 +139,14 @@ export default function DashboardNavbar({
                   <div className="group border border-border rounded-2xl p-6 flex flex-col gap-4 bg-secondary/20 transition-all hover:bg-secondary/40 hover:border-foreground/10">
                     <div className="flex items-start justify-between">
                       <div className="space-y-1.5">
-                        <h4 className="font-bold text-foreground text-lg tracking-tight">Browser Recorder</h4>
-                        <p className="text-xs text-muted-foreground font-medium italic uppercase tracking-widest opacity-70">Direct & Fast</p>
+                        <h4 className="text-lg font-semibold text-foreground tracking-tight">Browser Recorder</h4>
+                        <p className="text-eyebrow">Direct and fast</p>
                       </div>
                       <div className="p-2 rounded-xl bg-secondary text-muted-foreground">
                         <MonitorUp size={20} />
                       </div>
                     </div>
-                    <ul className="text-sm text-muted-foreground/80 space-y-2">
+                    <ul className="text-body-sm text-muted-foreground/90 space-y-2">
                       <li className="flex items-center gap-2">
                         <div className="size-1 rounded-full bg-muted-foreground/40" />
                         No software required

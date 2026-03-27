@@ -99,14 +99,14 @@ export default function BillingPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 text-xs font-bold uppercase tracking-wider mb-6 border border-purple-500/20">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-eyebrow mb-6 border border-primary/20">
             <Star size={12} fill="currentColor" />
             Pricing Plans
           </div>
-          <h1 className="text-5xl md:text-7xl font-black text-foreground mb-6 tracking-tight leading-none uppercase">
+          <h1 className="text-display md:text-[3.5rem] mb-6">
             Simple, <span className="text-purple-600">Transparent</span> Pricing.
           </h1>
-          <p className="text-muted-foreground text-xl font-medium leading-relaxed max-w-2xl mx-auto">
+          <p className="text-subheading max-w-2xl mx-auto">
             Everything you need to record, share, and collaborate on videos with the power of artificial intelligence.
           </p>
         </motion.div>
@@ -129,20 +129,20 @@ export default function BillingPage() {
               )}
             >
               {plan.popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-[10px] font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-eyebrow px-4 py-1.5 rounded-full shadow-lg">
                   Most Popular
                 </div>
               )}
 
               <div className="mb-8">
                 <h3 className={cn(
-                  "text-xl font-black uppercase tracking-tight mb-2",
+                  "text-xl font-semibold tracking-tight mb-2",
                   plan.variant === "premium" ? "text-background" : "text-foreground"
                 )}>
                   {plan.name}
                 </h3>
                 <p className={cn(
-                  "text-sm font-medium opacity-70",
+                  "text-body-sm opacity-80",
                   plan.variant === "premium" ? "text-background" : "text-muted-foreground"
                 )}>
                   {plan.description}
@@ -150,9 +150,9 @@ export default function BillingPage() {
               </div>
 
               <div className="mb-8 flex items-baseline gap-1">
-                <span className="text-5xl font-black tracking-tighter">{plan.price}</span>
+                <span className="text-5xl font-bold tracking-tighter">{plan.price}</span>
                 {plan.price !== "Custom" && (
-                  <span className="text-sm font-bold opacity-60 uppercase tracking-widest">/mo</span>
+                  <span className="text-caption opacity-70">/mo</span>
                 )}
               </div>
 
@@ -166,7 +166,7 @@ export default function BillingPage() {
                       <Check size={12} className={plan.variant === "premium" ? "text-background" : "text-purple-600"} strokeWidth={3} />
                     </div>
                     <span className={cn(
-                      "text-sm font-bold",
+                      "text-body-sm font-medium",
                       plan.variant === "premium" ? "text-background/90" : "text-foreground/80"
                     )}>
                       {feature}
@@ -185,7 +185,7 @@ export default function BillingPage() {
                 }
                 disabled={loading || currentPlan === plan.name.toUpperCase()}
                 className={cn(
-                  "w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all active:scale-95 shadow-lg",
+                  "w-full h-14 rounded-2xl font-semibold text-sm transition-all active:scale-95 shadow-lg",
                   plan.variant === "premium" 
                     ? "bg-background text-foreground hover:bg-background/90" 
                     : "bg-foreground text-background hover:bg-foreground/90"
@@ -206,22 +206,22 @@ export default function BillingPage() {
       <div className="px-4 sm:px-8 lg:px-12 pb-40">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-black uppercase tracking-tighter mb-4">Compare Features</h2>
-            <p className="text-muted-foreground font-medium">Find the perfect fit for your workflow.</p>
+            <h2 className="text-page-title mb-4">Compare Features</h2>
+            <p className="text-body">Find the perfect fit for your workflow.</p>
           </div>
 
           <div className="rounded-[2rem] border border-border bg-card/50 backdrop-blur-xl overflow-hidden shadow-2xl">
             <div className="grid grid-cols-5 p-6 border-b border-border bg-muted/30">
               <div className="col-span-1 font-bold text-xs uppercase text-muted-foreground tracking-widest">Features</div>
-              <div className="text-center font-black text-sm uppercase">Starter</div>
-              <div className="text-center font-black text-sm uppercase text-purple-600">Pro</div>
-              <div className="text-center font-black text-sm uppercase">Team</div>
-              <div className="text-center font-black text-sm uppercase">Enterprise</div>
+              <div className="text-center font-semibold text-sm uppercase">Starter</div>
+              <div className="text-center font-semibold text-sm uppercase text-purple-600">Pro</div>
+              <div className="text-center font-semibold text-sm uppercase">Team</div>
+              <div className="text-center font-semibold text-sm uppercase">Enterprise</div>
             </div>
 
             {comparisonData.map((category) => (
               <div key={category.category}>
-                <div className="px-6 py-4 bg-secondary/20 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border/50">
+                <div className="px-6 py-4 bg-secondary/20 text-eyebrow tracking-[0.2em] text-muted-foreground border-b border-border/50">
                   {category.category}
                 </div>
                 {category.features.map((feature, idx) => (
@@ -258,11 +258,11 @@ export default function BillingPage() {
                 <Mail size={32} />
               </div>
               <div>
-                <h4 className="text-xl font-black uppercase tracking-tight">Need a custom plan?</h4>
-                <p className="text-muted-foreground font-medium">Our team is happy to help you build a package that fits your organization perfectly.</p>
+                <h4 className="text-xl font-semibold tracking-tight">Need a custom plan?</h4>
+                <p className="text-body-sm">Our team is happy to help you build a package that fits your organization perfectly.</p>
               </div>
             </div>
-            <Button variant="outline" className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-xs border-2 border-foreground/10 hover:border-foreground/20 hover:bg-background">
+            <Button variant="outline" className="h-14 px-8 rounded-2xl font-semibold text-sm border-2 border-foreground/10 hover:border-foreground/20 hover:bg-background">
               Talk to an Expert
               <ArrowRight size={16} className="ml-2" />
             </Button>

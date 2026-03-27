@@ -29,19 +29,19 @@ const FeatureCard = ({ icon: Icon, title, desc, gradient }: any) => (
     whileInView={{ opacity: 1, y: 0 }}
     viewport={{ once: true }}
     transition={{ duration: 0.5 }}
-    className={`group p-8 rounded-3xl border border-white/5 bg-neutral-900/50 hover:border-white/20 transition-all duration-500 hover:shadow-2xl hover:shadow-white/5`}
+    className="group p-8 rounded-3xl border border-border bg-card/70 hover:border-foreground/20 transition-all duration-500 hover:shadow-xl"
   >
-    <div className="w-14 h-14 rounded-2xl bg-white border border-white/10 flex items-center justify-center mb-6 group-hover:bg-neutral-200 transition-colors duration-500">
+    <div className="w-14 h-14 rounded-2xl bg-foreground border border-border flex items-center justify-center mb-6 group-hover:bg-foreground/90 transition-colors duration-500">
       <Icon size={28} className="text-black" />
     </div>
-    <h3 className="text-xl font-bold mb-3 text-white">{title}</h3>
-    <p className="text-neutral-500 text-sm leading-relaxed font-medium">{desc}</p>
+    <h3 className="text-xl font-semibold mb-3 text-foreground">{title}</h3>
+    <p className="text-body-sm">{desc}</p>
   </motion.div>
 );
 
 export default function HomePage() {
   return (
-    <main className="bg-[#050505] min-h-screen selection:bg-purple-500/30">
+    <main className="bg-background min-h-screen selection:bg-primary/20">
       <LandingPageNavbar />
 
       {/* Hero Section */}
@@ -54,21 +54,21 @@ export default function HomePage() {
               transition={{ duration: 0.8, ease: "easeOut" }}
               className="space-y-8"
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10">
-                <Sparkles size={16} className="text-white" />
-                <span className="text-xs text-white font-bold uppercase tracking-widest">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border">
+                <Sparkles size={16} className="text-foreground" />
+                <span className="text-eyebrow text-foreground">
                   The Future of Collaboration
                 </span>
               </div>
               
-              <h1 id="hero-title" className="text-4xl md:text-6xl font-semibold leading-tight text-white mb-6">
+              <h1 id="hero-title" className="text-display mb-6">
                 Record. Share.<br />
-                <span className="text-neutral-500">
+                <span className="text-muted-foreground">
                   Collaborate.
                 </span>
               </h1>
               
-              <p id="hero-sub" className="text-neutral-400 text-base md:text-lg mt-4 max-w-lg leading-relaxed font-medium">
+              <p id="hero-sub" className="text-subheading mt-4 max-w-lg">
                 Vintyl is an async video platform that lets teams record, 
                 share, and discuss videos with AI-powered insights.
               </p>
@@ -77,7 +77,7 @@ export default function HomePage() {
                 <Link href="/auth?mode=signup">
                   <Button
                     size="lg"
-                    className="bg-white hover:bg-neutral-200 text-black px-12 py-8 text-xl font-black rounded-2xl gap-3 shadow-2xl shadow-white/10 active:scale-95 transition-all"
+                    className="bg-foreground hover:bg-foreground/90 text-background px-12 py-8 text-lg font-semibold rounded-2xl gap-3 shadow-xl active:scale-95 transition-all"
                   >
                     Start Free Trial
                     <ArrowRight size={20} />
@@ -87,21 +87,21 @@ export default function HomePage() {
                   size="lg"
                   variant="outline"
                   onClick={() => document.getElementById("demo")?.scrollIntoView({ behavior: 'smooth' })}
-                  className="border-white/10 bg-transparent hover:bg-white/5 px-12 py-8 text-xl font-black rounded-2xl gap-3 backdrop-blur-md transition-all active:scale-95 text-white"
+                  className="border-border bg-transparent hover:bg-secondary px-12 py-8 text-lg font-semibold rounded-2xl gap-3 backdrop-blur-md transition-all active:scale-95 text-foreground"
                 >
                   <Play size={20} fill="currentColor" />
                   Watch Demo
                 </Button>
               </div>
               
-              <div className="flex items-center gap-6 pt-8 border-t border-white/5">
+              <div className="flex items-center gap-6 pt-8 border-t border-border">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-[#050505] bg-neutral-900" />
+                    <div key={i} className="w-10 h-10 rounded-full border-2 border-background bg-card" />
                   ))}
                 </div>
-                <p className="text-sm text-neutral-500 font-bold">
-                  Joined by <span className="text-white">2,400+</span> teams this month
+                <p className="text-body-sm font-medium">
+                  Joined by <span className="text-foreground font-semibold">2,400+</span> teams this month
                 </p>
               </div>
             </motion.div>
@@ -151,10 +151,10 @@ export default function HomePage() {
             viewport={{ once: true }}
             className="text-center mb-20 space-y-4"
           >
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight text-white">
+            <h2 className="text-page-title md:text-[2.75rem]">
               See Vintyl in Action
             </h2>
-            <p className="text-neutral-500 text-lg max-w-xl mx-auto">
+            <p className="text-subheading max-w-xl mx-auto">
               Experience the seamless recording and AI summarization flow that saves teams hours every week.
             </p>
           </motion.div>
@@ -178,10 +178,10 @@ export default function HomePage() {
       <section id="features" className="py-20 md:py-28 px-6 relative bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
-              Everything to <span className="text-neutral-500">Communicate Faster</span>
+            <h2 className="text-page-title md:text-[2.5rem]">
+              Everything to <span className="text-muted-foreground">Communicate Faster</span>
             </h2>
-            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed font-medium">
+            <p className="text-subheading max-w-xl mx-auto">
               Vintyl provides the tools professional teams need for high-fidelity async communication.
             </p>
           </div>
@@ -213,10 +213,10 @@ export default function HomePage() {
       <section id="workflow" className="py-20 md:py-28 px-6 bg-white/[0.01]">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
-            <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">
-              Get Started in <span className="text-neutral-500">3 Seconds</span>
+            <h2 className="text-page-title md:text-[2.5rem]">
+              Get Started in <span className="text-muted-foreground">3 Seconds</span>
             </h2>
-            <p className="text-neutral-500 max-w-xl mx-auto text-lg leading-relaxed font-medium">
+            <p className="text-subheading max-w-xl mx-auto">
               Vintyl is designed for speed. No complex setup, just pure collaboration.
             </p>
           </div>
@@ -241,8 +241,8 @@ export default function HomePage() {
                  <div className="w-20 h-20 rounded-3xl bg-neutral-900 border border-white/10 flex items-center justify-center shadow-xl shadow-white/5 group">
                     <step.icon size={32} className="text-white group-hover:scale-110 transition-transform" />
                  </div>
-                 <h3 className="text-2xl font-black text-white">{step.title}</h3>
-                 <p className="text-neutral-500 text-sm max-w-[250px] font-bold">{step.desc}</p>
+                 <h3 className="text-2xl font-semibold text-foreground">{step.title}</h3>
+                 <p className="text-body-sm max-w-[250px]">{step.desc}</p>
                </motion.div>
              ))}
           </div>
@@ -253,8 +253,8 @@ export default function HomePage() {
       <section id="faq" className="py-20 md:py-28 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl font-black text-white mb-4 tracking-tighter">Frequently Asked Questions</h2>
-            <p className="text-neutral-500 font-bold">Everything you need to know about Vintyl.</p>
+            <h2 className="text-page-title mb-4">Frequently Asked Questions</h2>
+            <p className="text-subheading">Everything you need to know about Vintyl.</p>
           </div>
 
           <div className="space-y-4">
@@ -270,7 +270,7 @@ export default function HomePage() {
                 viewport={{ once: true }}
                 className="p-6 rounded-2xl border border-white/5 bg-neutral-900/30 space-y-3 hover:border-white/10 transition-colors"
               >
-                <h4 className="flex items-center gap-3 text-lg font-black text-white">
+                <h4 className="flex items-center gap-3 text-lg font-semibold text-foreground">
                   <HelpCircle size={20} className="text-white" />
                   {faq.q}
                 </h4>
@@ -290,8 +290,8 @@ export default function HomePage() {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
             <div className="space-y-8 relative z-10">
-              <h2 className="text-4xl md:text-5xl font-black text-white leading-tight tracking-tighter">
-                AI that <span className="text-neutral-400">Contextualizes</span> Everything.
+              <h2 className="text-page-title md:text-[2.5rem] leading-tight">
+                AI that <span className="text-muted-foreground">Contextualizes</span> Everything.
               </h2>
               <ul className="space-y-6">
                 {[
@@ -299,13 +299,13 @@ export default function HomePage() {
                   "Searchable AI transcriptions",
                   "Actionable highlights from discussions"
                 ].map((item, i) => (
-                  <li key={i} className="flex gap-4 items-center text-neutral-400 text-lg font-bold">
+                  <li key={i} className="flex gap-4 items-center text-subheading">
                     <CheckCircle2 size={24} className="text-white shrink-0" />
                     {item}
                   </li>
                 ))}
               </ul>
-              <Button className="bg-white text-black hover:bg-neutral-200 rounded-2xl px-10 py-7 font-black text-lg shadow-xl active:scale-95 transition-all">
+              <Button className="bg-foreground text-background hover:bg-foreground/90 rounded-2xl px-10 py-7 font-semibold text-lg shadow-xl active:scale-95 transition-all">
                 Learn about Vintyl AI
               </Button>
             </div>
@@ -322,8 +322,8 @@ export default function HomePage() {
       {/* Pricing Section */}
       <section id="pricing" className="py-20 md:py-28 px-6">
         <div className="max-w-7xl mx-auto text-center mb-20 space-y-4">
-          <h2 className="text-4xl md:text-5xl font-black text-white tracking-tighter">Simple Pricing</h2>
-          <p className="text-neutral-500 max-w-xl mx-auto font-bold">Start for free, upgrade as your team grows.</p>
+          <h2 className="text-page-title md:text-[2.5rem]">Simple Pricing</h2>
+          <p className="text-subheading max-w-xl mx-auto">Start for free, upgrade as your team grows.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
@@ -345,25 +345,25 @@ export default function HomePage() {
               } relative transition-all duration-500 group overflow-hidden`}
             >
               {plan.popularity && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] uppercase font-black tracking-widest px-6 py-2 rounded-full shadow-lg">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-foreground text-background text-eyebrow px-6 py-2 rounded-full shadow-lg">
                   Most Popular
                 </div>
               )}
-              <h3 className="text-2xl font-black mb-2 text-white">{plan.name}</h3>
+              <h3 className="text-2xl font-semibold mb-2 text-foreground">{plan.name}</h3>
               <div className="flex items-end gap-1 mb-8">
-                <span className="text-5xl font-black text-white">${plan.price}</span>
-                <span className="text-neutral-500 font-bold pb-2">/mo</span>
+                <span className="text-5xl font-bold text-foreground">${plan.price}</span>
+                <span className="text-caption pb-2">/mo</span>
               </div>
               <ul className="space-y-4 text-left mb-10">
                 {plan.features.map((f, j) => (
-                  <li key={j} className="flex gap-3 text-sm text-neutral-400 font-bold">
+                  <li key={j} className="flex gap-3 text-body-sm">
                     <CheckCircle2 size={18} className="text-white" />
                     {f}
                   </li>
                 ))}
               </ul>
               <Button 
-                className={`w-full py-7 rounded-2xl font-black text-lg shadow-lg active:scale-95 transition-all ${
+                className={`w-full py-7 rounded-2xl font-semibold text-lg shadow-lg active:scale-95 transition-all ${
                   plan.popularity 
                     ? 'bg-white hover:bg-neutral-200 text-black shadow-white/10' 
                     : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
@@ -408,7 +408,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between text-[11px] font-bold tracking-widest text-neutral-600 uppercase">
+        <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between text-caption tracking-widest text-neutral-600 uppercase">
            <p>© {new Date().getFullYear()} Vintyl Studio Inc.</p>
            <p>Engineered for Speed & Scale</p>
         </div>

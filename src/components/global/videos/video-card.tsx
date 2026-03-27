@@ -78,12 +78,12 @@ export default function VideoCard({
         <div 
           draggable
           onDragStart={handleDragStart}
-          className="group overflow-hidden cursor-pointer bg-neutral-900/40 relative border-2 border-white/5 flex flex-col rounded-3xl hover:scale-[1.02] hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 transition-all duration-500 ease-out"
+          className="group overflow-hidden cursor-pointer bg-card/70 relative border border-border flex flex-col rounded-3xl hover:scale-[1.02] hover:border-foreground/20 hover:shadow-xl transition-all duration-500 ease-out"
         >
           {processing && (
             <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 animate-pulse">
               <div className="w-10 h-10 rounded-full border-t-2 border-white animate-spin" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-white">Processing...</p>
+              <p className="text-eyebrow text-foreground">Processing...</p>
             </div>
           )}
           <div className="absolute top-2 right-2 z-30 gap-x-3 hidden group-hover:flex">
@@ -112,7 +112,7 @@ export default function VideoCard({
             </div>
           </div>
           <div className="px-5 py-4 flex flex-col gap-3 bg-gradient-to-b from-transparent to-secondary/10">
-            <h2 className="text-base md:text-lg font-semibold leading-tight text-white line-clamp-1 group-hover:translate-x-1 transition-transform">
+            <h2 className="text-base md:text-lg font-semibold leading-tight text-foreground line-clamp-1 group-hover:translate-x-1 transition-transform">
               {title || "Untitled Video"}
             </h2>
           <div className="flex gap-x-2 items-center">
@@ -123,13 +123,13 @@ export default function VideoCard({
               </AvatarFallback>
             </Avatar>
             <div>
-              <p className="capitalize text-xs font-bold text-foreground/80">
+              <p className="capitalize text-xs font-medium text-foreground/80">
                 {user?.firstName} {user?.lastName}
               </p>
-              <p className="text-xs text-muted-foreground font-medium flex items-center gap-1.5 mt-0.5">
+              <p className="text-caption flex items-center gap-1.5 mt-0.5">
                 <span className="bg-secondary px-1.5 py-0.5 rounded">{timeAgo}</span>
                 <span className="opacity-30">•</span>
-                <span className="bg-secondary px-1.5 py-0.5 rounded font-black">{views} VIEWS</span>
+                <span className="bg-secondary px-1.5 py-0.5 rounded font-semibold">{views} views</span>
               </p>
             </div>
           </div>
@@ -137,8 +137,8 @@ export default function VideoCard({
       </Link>
     </div>
       </ContextMenuTrigger>
-      <ContextMenuContent className="w-56 bg-neutral-900 border-white/10 text-white backdrop-blur-3xl shadow-3xl rounded-2xl p-2 focus:outline-none animate-in fade-in zoom-in-95 duration-200">
-        <ContextMenuItem className="cursor-pointer hover:bg-white/5 p-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-colors">
+      <ContextMenuContent className="w-56 bg-popover border-border text-popover-foreground backdrop-blur-3xl shadow-3xl rounded-2xl p-2 focus:outline-none animate-in fade-in zoom-in-95 duration-200">
+        <ContextMenuItem className="cursor-pointer hover:bg-secondary p-2.5 text-xs font-semibold rounded-xl transition-colors">
           <Link href={`/preview/${id}`} className="w-full">
             Open video
           </Link>

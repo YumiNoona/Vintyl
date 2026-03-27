@@ -158,9 +158,9 @@ export default function FolderCard({
           onDoubleClick={handleDoubleClick}
           onDragOver={handleDragOver}
           onDrop={handleDrop}
-          className={`flex hover:bg-neutral-800/80 cursor-pointer transition-all duration-300 items-center gap-3 justify-between min-w-[250px] py-4 px-6 rounded-3xl border-2 group ${
+          className={`flex hover:bg-secondary/60 cursor-pointer transition-all duration-300 items-center gap-3 justify-between min-w-[250px] py-4 px-6 rounded-3xl border group ${
             optimistic ? "opacity-60" : "border-white/5 bg-neutral-900/40"
-          } hover:border-white/20 hover:shadow-2xl hover:shadow-white/5 backdrop-blur-xl`}
+          } hover:border-foreground/20 hover:shadow-xl backdrop-blur-xl`}
         >
           <div className="flex flex-col gap-0">
             {onRename ? (
@@ -173,9 +173,9 @@ export default function FolderCard({
                 className="border-none text-base w-full outline-none text-foreground bg-transparent p-0 h-auto focus:ring-0 font-bold"
               />
             ) : (
-            <p className="text-white font-black tracking-tight text-sm uppercase">{name}</p>
+            <p className="text-foreground font-semibold tracking-tight text-sm">{name}</p>
             )}
-            <span className="text-[10px] uppercase tracking-widest font-black text-neutral-500 mt-0.5">
+            <span className="text-eyebrow mt-0.5">
               {count || 0} video{count !== 1 ? "s" : ""}
             </span>
           </div>
@@ -245,16 +245,16 @@ export default function FolderCard({
                         : "bg-neutral-900/40 border-white/5 text-neutral-500 hover:border-white/10 hover:bg-neutral-800/80"
                     }`}
                   >
-                    <span className="font-black text-sm uppercase tracking-tight">{w.name}</span>
+                    <span className="font-semibold text-sm tracking-tight">{w.name}</span>
                     {selectedWorkspace === w.id && <div className="size-2.5 rounded-full bg-white shadow-[0_0_15px_white]" />}
                   </button>
                 ))}
               </div>
           </div>
           <DialogFooter className="mt-8">
-            <Button variant="ghost" onClick={() => setIsMoveOpen(false)} className="rounded-2xl h-12 font-black uppercase text-[10px] tracking-widest text-neutral-500 hover:text-white">Cancel</Button>
+            <Button variant="ghost" onClick={() => setIsMoveOpen(false)} className="rounded-2xl h-12 font-medium text-sm text-muted-foreground hover:text-foreground">Cancel</Button>
             <Button 
-              className="bg-white text-black hover:bg-neutral-200 font-black h-12 px-8 rounded-2xl shadow-2xl shadow-white/5 transition-all active:scale-95 uppercase text-[10px] tracking-widest"
+              className="bg-foreground text-background hover:bg-foreground/90 font-semibold h-12 px-8 rounded-2xl shadow-xl transition-all active:scale-95 text-sm"
               onClick={() => moveMutate({ workspaceId: selectedWorkspace })}
               disabled={selectedWorkspace === workspaceId || moving}
             >
