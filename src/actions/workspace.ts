@@ -65,14 +65,33 @@ export const getWorkspaceFolders = async (workspaceId: string) => {
     const systemSupabase = await createSystemClient();
     const { data: folders, error } = await systemSupabase
       .from("Folder")
-      .select("id, name, createdAt, videoCount")
+      .select("id, name, createdAt")
       .eq("workspaceId", workspaceId)
       .order("createdAt", { ascending: true });
 
     if (error) console.error("getWorkspaceFolders error:", error.message);
 
     if (folders && folders.length > 0) {
-      return { status: 200, data: folders };
+      const { data: videos } = await systemSupabase
+        .from("Video")
+        .select("id, folderId")
+        .eq("workspaceId", workspaceId)
+        .eq("processing", false)
+        .not("folderId", "is", null);
+
+      const folderCountMap = new Map<string, number>();
+      (videos || []).forEach((video: { folderId: string | null }) => {
+        if (!video.folderId) return;
+        folderCountMap.set(video.folderId, (folderCountMap.get(video.folderId) || 0) + 1);
+      });
+
+      return {
+        status: 200,
+        data: folders.map((folder) => ({
+          ...folder,
+          videoCount: folderCountMap.get(folder.id) || 0,
+        })),
+      };
     }
 
     return { status: 404, data: [] };
@@ -81,18 +100,28 @@ export const getWorkspaceFolders = async (workspaceId: string) => {
   }
 };
 
-export const getAllUserVideos = async (workspaceId: string) => {
+export const getAllUserVideos = async (
+  workspaceId: string,
+  folderId?: string
+) => {
   try {
     // Use system client to bypass RLS circular dependency on Video table
     const systemSupabase = await createSystemClient();
 
     // Query only by workspaceId — folderId is a child of workspace, not an alternative root
-    const { data: videos, error } = await systemSupabase
+    let query = systemSupabase
       .from("Video")
       .select("*, Folder(id, name), User(firstName, lastName, image)")
       .eq("workspaceId", workspaceId)
-      .eq("processing", false)
-      .order("createdAt", { ascending: false });
+      .eq("processing", false);
+
+    if (folderId) {
+      query = query.eq("folderId", folderId);
+    }
+
+    const { data: videos, error } = await query.order("createdAt", {
+      ascending: false,
+    });
 
     if (error) console.error("getAllUserVideos error:", error.message);
 
@@ -658,11 +687,20 @@ export const deleteVideo = async (videoId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const { data: video } = await supabase
+    const systemSupabase = await createSystemClient();
+    const { data: dbUser } = await systemSupabase
+      .from("User")
+      .select("id")
+      .eq("supabaseId", user.id)
+      .single();
+
+    if (!dbUser) return { status: 404, data: "User not found" };
+
+    const { data: video } = await systemSupabase
       .from("Video")
       .select("source")
       .eq("id", videoId)
-      .eq("userId", user.id)
+      .eq("userId", dbUser.id)
       .single();
 
     if (!video) return { status: 404, data: "Video not found or unauthorized" };
@@ -670,7 +708,7 @@ export const deleteVideo = async (videoId: string) => {
     const key = video.source.split("/").pop();
     if (!key) throw new Error("Could not parse storage key");
 
-    const { error: dbError } = await supabase
+    const { error: dbError } = await systemSupabase
       .from("Video")
       .delete()
       .eq("id", videoId);

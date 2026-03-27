@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Loader from "@/components/global/loader";
-import { Share2, User, Play, Video } from "lucide-react";
+import { Share2, User, Play } from "lucide-react";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -14,8 +14,20 @@ import {
 import ShareModal from "../share-modal";
 import EditVideo from "./edit-video";
 import { useMutationData } from "@/hooks/useMutationData";
-import { deleteVideo } from "@/actions/workspace";
+import { deleteVideo, getWorkspaceFolders, moveVideoLocation } from "@/actions/workspace";
 import { toast } from "sonner";
+import { useQueryData } from "@/hooks/useQueryData";
+import { FolderProps } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type VideoCardProps = {
   id: string;
@@ -49,23 +61,63 @@ export default function VideoCard({
   folder,
   views = 0,
 }: VideoCardProps) {
+  const queryClient = useQueryClient();
+  const [isEditOpen, setIsEditOpen] = React.useState(false);
+  const [isMoveOpen, setIsMoveOpen] = React.useState(false);
+  const [timeAgo, setTimeAgo] = React.useState("Recently");
+  const [selectedFolderId, setSelectedFolderId] = React.useState<string>(folder?.id || "");
   const createdDate = new Date(createdAt);
-  const daysDiff = Math.floor(
-    (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+
+  React.useEffect(() => {
+    setSelectedFolderId(folder?.id || "");
+  }, [folder?.id]);
+
+  React.useEffect(() => {
+    const daysDiff = Math.floor(
+      (Date.now() - createdDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const nextTimeAgo =
+      daysDiff === 0
+        ? "Today"
+        : daysDiff === 1
+        ? "Yesterday"
+        : `${daysDiff} days ago`;
+    setTimeAgo(nextTimeAgo);
+  }, [createdAt]);
+
+  const { data: foldersData } = useQueryData(
+    ["workspace-folders", workspaceId],
+    () => getWorkspaceFolders(workspaceId)
   );
-  const timeAgo =
-    daysDiff === 0
-      ? "Today"
-      : daysDiff === 1
-      ? "Yesterday"
-      : `${daysDiff} days ago`;
+  const folders = ((foldersData as FolderProps)?.data || []).filter(
+    (folderItem) => folderItem.id !== folder?.id
+  );
 
   const { mutate: onDelete, isPending } = useMutationData(
     ["delete-video"],
     () => deleteVideo(id),
-    "user-videos",
+    [["user-videos", workspaceId], ["workspace-folders", workspaceId]],
     () => toast.success("Video deleted permanently")
   );
+
+  const handleMoveVideo = async () => {
+    const res = await moveVideoLocation(id, workspaceId, selectedFolderId);
+    if (res.status === 200) {
+      toast.success("Video moved successfully");
+      setIsMoveOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["user-videos", workspaceId] });
+      queryClient.invalidateQueries({ queryKey: ["workspace-folders", workspaceId] });
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          Array.isArray(query.queryKey) &&
+          typeof query.queryKey[0] === "string" &&
+          query.queryKey[0].startsWith("folder-videos-"),
+      });
+      return;
+    }
+
+    toast.error("Failed to move video");
+  };
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("videoId", id);
@@ -87,11 +139,7 @@ export default function VideoCard({
             </div>
           )}
           <div className="absolute top-2 right-2 z-30 gap-x-3 hidden group-hover:flex">
-            <EditVideo
-              videoId={id}
-              title={title || ""}
-              description={description || ""}
-            />
+            <EditVideo videoId={id} title={title || ""} description={description || ""} />
             <ShareModal
               videoId={id}
               trigger={
@@ -104,10 +152,10 @@ export default function VideoCard({
         <Link href={`/preview/${id}`} className="flex flex-col">
           <div className="h-44 w-full overflow-hidden relative group-hover:opacity-95 transition-opacity">
             {/* Thumbnail Placeholder */}
-            <div className="absolute inset-0 bg-neutral-900" />
+            <div className="absolute inset-0 bg-secondary/60" />
             <div className="absolute inset-0 flex items-center justify-center">
-               <div className="bg-white/5 backdrop-blur-xl p-4 rounded-full border border-white/10 shadow-2xl group-hover:scale-110 group-hover:bg-white/10 transition-all duration-500">
-                 <Play className="text-white fill-white ml-1" size={24} />
+               <div className="bg-background/80 backdrop-blur-xl p-4 rounded-full border border-border shadow-2xl group-hover:scale-110 group-hover:bg-background transition-all duration-500">
+                 <Play className="text-foreground fill-foreground ml-1" size={24} />
                </div>
             </div>
           </div>
@@ -144,10 +192,26 @@ export default function VideoCard({
           </Link>
         </ContextMenuItem>
         <ContextMenuItem className="cursor-pointer hover:bg-secondary p-2.5 text-sm font-medium text-foreground rounded-xl transition-colors">
-          Rename
+          <button
+            className="w-full text-left"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditOpen(true);
+            }}
+          >
+            Rename
+          </button>
         </ContextMenuItem>
         <ContextMenuItem className="cursor-pointer hover:bg-secondary p-2.5 text-sm font-medium text-foreground rounded-xl transition-colors">
-          Move
+          <button
+            className="w-full text-left"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMoveOpen(true);
+            }}
+          >
+            Move
+          </button>
         </ContextMenuItem>
         <ContextMenuItem 
           className="cursor-pointer hover:bg-secondary p-2.5 text-sm font-medium text-foreground rounded-xl transition-colors"
@@ -169,6 +233,61 @@ export default function VideoCard({
           {isPending ? "Deleting..." : "Delete"}
         </ContextMenuItem>
       </ContextMenuContent>
+      <EditVideo
+        videoId={id}
+        title={title || ""}
+        description={description || ""}
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+      />
+      <Dialog open={isMoveOpen} onOpenChange={setIsMoveOpen}>
+        <DialogContent className="bg-card border-border text-foreground rounded-2xl shadow-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold tracking-tight">Move Video</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Select where this video should live.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-3">
+            <button
+              onClick={() => setSelectedFolderId("")}
+              className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 ${
+                selectedFolderId === ""
+                  ? "bg-foreground/10 border-foreground/30 text-foreground shadow-md"
+                  : "bg-card border-border text-muted-foreground hover:border-foreground/20 hover:bg-secondary"
+              }`}
+            >
+              <span className="font-semibold text-sm tracking-tight">Workspace root (no folder)</span>
+              {selectedFolderId === "" && <div className="size-2.5 rounded-full bg-foreground" />}
+            </button>
+            {folders.map((folderItem) => (
+              <button
+                key={folderItem.id}
+                onClick={() => setSelectedFolderId(folderItem.id)}
+                className={`w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 ${
+                  selectedFolderId === folderItem.id
+                    ? "bg-foreground/10 border-foreground/30 text-foreground shadow-md"
+                    : "bg-card border-border text-muted-foreground hover:border-foreground/20 hover:bg-secondary"
+                }`}
+              >
+                <span className="font-semibold text-sm tracking-tight">{folderItem.name}</span>
+                {selectedFolderId === folderItem.id && <div className="size-2.5 rounded-full bg-foreground" />}
+              </button>
+            ))}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setIsMoveOpen(false)} className="rounded-xl h-11">
+              Cancel
+            </Button>
+            <Button
+              className="bg-foreground text-background hover:bg-foreground/90 h-11 px-8 rounded-xl font-bold"
+              onClick={handleMoveVideo}
+            >
+              Move
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </ContextMenu>
   );
 }

@@ -118,31 +118,20 @@ export default function FolderCard({
     const videoId = e.dataTransfer.getData("videoId");
     if (videoId) {
       toast.info("Moving video...");
-      
-      // Optimistic Update
-      const previousVideos = queryClient.getQueryData(["user-videos"]);
-      if (previousVideos) {
-        queryClient.setQueryData(["user-videos"], (old: any) => {
-          if (!old?.data) return old;
-          return {
-            ...old,
-            data: old.data.map((v: any) => 
-              v.id === videoId ? { ...v, folderId: id } : v
-            )
-          };
-        });
-      }
 
       const res = await moveVideoLocation(videoId, workspaceId, id);
       if (res.status === 200) {
         toast.success("Video moved successfully");
-        queryClient.invalidateQueries({ queryKey: ["user-videos"] });
-        queryClient.invalidateQueries({ queryKey: ["workspace-folders"] });
+        queryClient.invalidateQueries({ queryKey: ["user-videos", workspaceId] });
+        queryClient.invalidateQueries({ queryKey: ["workspace-folders", workspaceId] });
+        queryClient.invalidateQueries({
+          predicate: (query) =>
+            Array.isArray(query.queryKey) &&
+            typeof query.queryKey[0] === "string" &&
+            query.queryKey[0].startsWith("folder-videos-"),
+        });
       } else {
         toast.error("Failed to move video");
-        if (previousVideos) {
-          queryClient.setQueryData(["user-videos"], previousVideos);
-        }
       }
     }
   };
@@ -159,7 +148,7 @@ export default function FolderCard({
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           className={`flex hover:bg-secondary/60 cursor-pointer transition-all duration-300 items-center gap-3 justify-between min-w-[250px] py-4 px-6 rounded-3xl border group ${
-            optimistic ? "opacity-60" : "border-white/5 bg-neutral-900/40"
+            optimistic ? "opacity-60" : "border-border bg-card/70"
           } hover:border-foreground/20 hover:shadow-xl backdrop-blur-xl`}
         >
           <div className="flex flex-col gap-0">
@@ -179,7 +168,7 @@ export default function FolderCard({
               {count || 0} video{count !== 1 ? "s" : ""}
             </span>
           </div>
-          <div className="size-11 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-white/20 group-hover:bg-white group-hover:text-black transition-all shadow-inner">
+          <div className="size-11 rounded-2xl bg-secondary flex items-center justify-center border border-border group-hover:border-foreground/20 group-hover:bg-foreground group-hover:text-background transition-all shadow-inner">
             <Folder className="opacity-80 transition-transform group-hover:scale-110" size={20} fill="currentColor" />
           </div>
         </div>
@@ -241,12 +230,12 @@ export default function FolderCard({
                     onClick={() => setSelectedWorkspace(w.id)}
                     className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 ${
                       selectedWorkspace === w.id 
-                        ? "bg-white/5 border-white text-white shadow-2xl shadow-white/5" 
-                        : "bg-neutral-900/40 border-white/5 text-neutral-500 hover:border-white/10 hover:bg-neutral-800/80"
+                        ? "bg-foreground/10 border-foreground/30 text-foreground shadow-md" 
+                        : "bg-card border-border text-muted-foreground hover:border-foreground/20 hover:bg-secondary"
                     }`}
                   >
                     <span className="font-semibold text-sm tracking-tight">{w.name}</span>
-                    {selectedWorkspace === w.id && <div className="size-2.5 rounded-full bg-white shadow-[0_0_15px_white]" />}
+                    {selectedWorkspace === w.id && <div className="size-2.5 rounded-full bg-foreground" />}
                   </button>
                 ))}
               </div>

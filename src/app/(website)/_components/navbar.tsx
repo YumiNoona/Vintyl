@@ -1,8 +1,5 @@
-import { User } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import React from "react";
-import { Button } from "@/components/ui/button";
 
 export default function LandingPageNavbar() {
   return (
@@ -17,13 +14,10 @@ export default function LandingPageNavbar() {
       </div>
       
       <div id="nav-links" className="hidden md:flex items-center gap-8 text-body-sm font-medium">
-        <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
         <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
         <Link href="#workflow" className="hover:text-foreground transition-colors">How it Works</Link>
-        <Link href="#ai" className="hover:text-foreground transition-colors">AI</Link>
         <Link href="#pricing" className="hover:text-foreground transition-colors">Pricing</Link>
         <Link href="#faq" className="hover:text-foreground transition-colors">FAQ</Link>
-        <Link href="/contact" className="hover:text-foreground transition-colors">Contact</Link>
       </div>
 
       <div className="flex gap-4">

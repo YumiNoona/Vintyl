@@ -184,6 +184,6 @@
   }
 
   .text-eyebrow {
-    @apply text-xxs uppercase tracking-[0.12em] font-semibold text-muted-foreground;
+    @apply text-xs uppercase tracking-[0.12em] font-semibold text-muted-foreground;
   }
 }

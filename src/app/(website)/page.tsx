@@ -3,27 +3,22 @@
 import React from "react";
 import LandingPageNavbar from "./_components/navbar";
 import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import {
   Video,
   Sparkles,
   Users,
   Zap,
-  Shield,
-  Globe,
   ArrowRight,
   Play,
   CheckCircle2,
   HelpCircle,
-  Clock,
   Layout,
-  MousePointer2,
 } from "lucide-react";
 import HeroVisual from "@/components/global/hero-visual";
 import { motion } from "framer-motion";
 
-const FeatureCard = ({ icon: Icon, title, desc, gradient }: any) => (
+const FeatureCard = ({ icon: Icon, title, desc }: any) => (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
@@ -32,7 +27,7 @@ const FeatureCard = ({ icon: Icon, title, desc, gradient }: any) => (
     className="group p-8 rounded-3xl border border-border bg-card/70 hover:border-foreground/20 transition-all duration-500 hover:shadow-xl"
   >
     <div className="w-14 h-14 rounded-2xl bg-foreground border border-border flex items-center justify-center mb-6 group-hover:bg-foreground/90 transition-colors duration-500">
-      <Icon size={28} className="text-black" />
+      <Icon size={28} className="text-background" />
     </div>
     <h3 className="text-xl font-semibold mb-3 text-foreground">{title}</h3>
     <p className="text-body-sm">{desc}</p>
@@ -163,19 +158,19 @@ export default function HomePage() {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="w-full max-w-5xl mx-auto rounded-[2.5rem] border border-white/10 bg-[#0a0a0a] p-4 shadow-3xl shadow-purple-500/5 relative group"
+            className="w-full max-w-5xl mx-auto rounded-[2.5rem] border border-border bg-card p-4 shadow-2xl shadow-foreground/5 relative group"
           >
-            <div className="rounded-[2rem] overflow-hidden aspect-video bg-neutral-900 border border-white/5 flex items-center justify-center relative">
+            <div className="rounded-[2rem] overflow-hidden aspect-video bg-background border border-border flex items-center justify-center relative">
                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10 opacity-0 group-hover:opacity-100 transition-opacity" />
-               <Play size={80} className="text-white opacity-20 group-hover:opacity-80 transition-all group-hover:scale-110 z-20 cursor-pointer" fill="currentColor" />
-               <div className="text-neutral-600 text-xl font-medium tracking-widest hidden group-hover:block absolute bottom-10 z-20">PRESS TO PLAY DEMO</div>
+               <Play size={80} className="text-foreground opacity-20 group-hover:opacity-80 transition-all group-hover:scale-110 z-20 cursor-pointer" fill="currentColor" />
+               <div className="text-muted-foreground text-lg font-medium tracking-wide hidden group-hover:block absolute bottom-10 z-20">Press to play demo</div>
             </div>
           </motion.div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 md:py-28 px-6 relative bg-white/[0.01]">
+      <section id="features" className="py-20 md:py-28 px-6 relative bg-muted/20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
             <h2 className="text-page-title md:text-[2.5rem]">
@@ -191,26 +186,23 @@ export default function HomePage() {
               icon={Video}
               title="Screen Recording"
               desc="Record high-resolution screen, camera, and system audio simultaneously."
-              gradient="from-purple-500/10 to-transparent"
             />
             <FeatureCard 
               icon={Sparkles}
               title="AI Transcription"
               desc="Automatic titles, summaries, and transcripts powered by the latest AI models."
-              gradient="from-pink-500/10 to-transparent"
             />
             <FeatureCard 
               icon={Users}
               title="Private Workspaces"
               desc="Organize your team's knowledge in structured, secure workspaces."
-              gradient="from-blue-500/10 to-transparent"
             />
           </div>
         </div>
       </section>
 
       {/* How it Works Section */}
-      <section id="workflow" className="py-20 md:py-28 px-6 bg-white/[0.01]">
+      <section id="workflow" className="py-20 md:py-28 px-6 bg-muted/20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-24 space-y-4">
             <h2 className="text-page-title md:text-[2.5rem]">
@@ -223,7 +215,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
              {/* Connection Line */}
-             <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-white/10 -translate-y-1/2" />
+             <div className="hidden md:block absolute top-1/2 left-0 w-full h-px bg-border -translate-y-1/2" />
              
              {[
                { icon: Layout, title: "1. Create", desc: "Start a workspace and invite your team in seconds." },
@@ -238,8 +230,8 @@ export default function HomePage() {
                  transition={{ delay: i * 0.2 }}
                  className="relative z-10 flex flex-col items-center text-center space-y-6"
                >
-                 <div className="w-20 h-20 rounded-3xl bg-neutral-900 border border-white/10 flex items-center justify-center shadow-xl shadow-white/5 group">
-                    <step.icon size={32} className="text-white group-hover:scale-110 transition-transform" />
+                 <div className="w-20 h-20 rounded-3xl bg-card border border-border flex items-center justify-center shadow-xl shadow-foreground/5 group">
+                    <step.icon size={32} className="text-foreground group-hover:scale-110 transition-transform" />
                  </div>
                  <h3 className="text-2xl font-semibold text-foreground">{step.title}</h3>
                  <p className="text-body-sm max-w-[250px]">{step.desc}</p>
@@ -268,13 +260,13 @@ export default function HomePage() {
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                className="p-6 rounded-2xl border border-white/5 bg-neutral-900/30 space-y-3 hover:border-white/10 transition-colors"
+                className="p-6 rounded-2xl border border-border bg-card/70 space-y-3 hover:border-foreground/20 transition-colors"
               >
                 <h4 className="flex items-center gap-3 text-lg font-semibold text-foreground">
-                  <HelpCircle size={20} className="text-white" />
+                  <HelpCircle size={20} className="text-foreground" />
                   {faq.q}
                 </h4>
-                <p className="text-neutral-500 pl-8 leading-relaxed font-medium">
+                <p className="text-body-sm pl-8">
                   {faq.a}
                 </p>
               </motion.div>
@@ -285,7 +277,7 @@ export default function HomePage() {
 
       {/* AI Section (Restored) */}
       <section id="ai" className="py-20 md:py-28 px-6">
-        <div id="ai-section" className="max-w-7xl mx-auto rounded-2xl border border-neutral-800 bg-neutral-900/50 p-8 overflow-hidden relative">
+        <div id="ai-section" className="max-w-7xl mx-auto rounded-2xl border border-border bg-card/70 p-8 overflow-hidden relative">
           <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/5 blur-[100px] rounded-full" />
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
@@ -300,7 +292,7 @@ export default function HomePage() {
                   "Actionable highlights from discussions"
                 ].map((item, i) => (
                   <li key={i} className="flex gap-4 items-center text-subheading">
-                    <CheckCircle2 size={24} className="text-white shrink-0" />
+                    <CheckCircle2 size={24} className="text-foreground shrink-0" />
                     {item}
                   </li>
                 ))}
@@ -311,8 +303,8 @@ export default function HomePage() {
             </div>
             
             <div className="relative">
-               <div className="aspect-square bg-white/5 rounded-3xl border border-white/5 flex items-center justify-center">
-                  <Sparkles size={120} className="text-white/10 animate-pulse" />
+               <div className="aspect-square bg-secondary rounded-3xl border border-border flex items-center justify-center">
+                  <Sparkles size={120} className="text-foreground/10 animate-pulse" />
                </div>
             </div>
           </div>
@@ -326,7 +318,7 @@ export default function HomePage() {
           <p className="text-subheading max-w-xl mx-auto">Start for free, upgrade as your team grows.</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto items-center pt-6">
           {[
             { name: "Personal", price: "0", features: ["1 Workspace", "25 Videos", "720p Quality", "Basic AI"], color: "white" },
             { name: "Pro", price: "99", features: ["Unlimited Workspaces", "Unlimited Videos", "4K Quality", "Advanced AI Support", "Custom Branding"], popularity: true },
@@ -340,9 +332,9 @@ export default function HomePage() {
               whileHover={{ y: -10, scale: plan.popularity ? 1.05 : 1.02 }}
               className={`p-10 rounded-[2.5rem] border ${
                 plan.popularity 
-                  ? 'border-white/20 bg-white/5 shadow-2xl shadow-white/5 scale-105 z-20' 
-                  : 'border-white/5 bg-neutral-900/50'
-              } relative transition-all duration-500 group overflow-hidden`}
+                  ? 'border-foreground/20 bg-card shadow-2xl shadow-foreground/5 scale-105 z-20' 
+                  : 'border-border bg-card/70'
+              } relative transition-all duration-500 group overflow-visible`}
             >
               {plan.popularity && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-foreground text-background text-eyebrow px-6 py-2 rounded-full shadow-lg">
@@ -365,8 +357,8 @@ export default function HomePage() {
               <Button 
                 className={`w-full py-7 rounded-2xl font-semibold text-lg shadow-lg active:scale-95 transition-all ${
                   plan.popularity 
-                    ? 'bg-white hover:bg-neutral-200 text-black shadow-white/10' 
-                    : 'bg-neutral-800 text-white hover:bg-neutral-700 border border-white/10'
+                    ? 'bg-foreground hover:bg-foreground/90 text-background shadow-foreground/10' 
+                    : 'bg-secondary text-foreground hover:bg-secondary/80 border border-border'
                 }`}
               >
                 Pick Plan
@@ -376,43 +368,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-20 px-8 border-t border-white/5 bg-neutral-950/50">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-start gap-20">
-          <div className="space-y-6">
-             <div className="flex items-center gap-3">
-                <img src="/vintyl-logo.svg" alt="logo" className="h-6 w-auto" />
-                <span className="text-sm font-semibold text-white">Vintyl</span>
-             </div>
-             <p className="text-neutral-500 max-w-[250px] leading-relaxed text-sm">
-               The asynchronous video platform for teams who value clear communication.
-             </p>
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-16 text-sm">
-            <div className="space-y-4">
-              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Product</h4>
-              <ul className="space-y-3 text-neutral-500">
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Features</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">AI Processing</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Pricing</li>
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <h4 className="font-bold text-white uppercase tracking-widest text-xs">Company</h4>
-              <ul className="space-y-3 text-neutral-500">
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Privacy</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Terms</li>
-                <li className="hover:text-purple-400 cursor-pointer transition-colors">Contact</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-        <div className="max-w-7xl mx-auto mt-20 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between text-caption tracking-widest text-neutral-600 uppercase">
-           <p>© {new Date().getFullYear()} Vintyl Studio Inc.</p>
-           <p>Engineered for Speed & Scale</p>
-        </div>
-      </footer>
     </main>
   );
 }

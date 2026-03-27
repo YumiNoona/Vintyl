@@ -144,7 +144,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
         <DropdownMenu>
           <DropdownMenuTrigger
             render={
-              <button className="w-full bg-card/80 backdrop-blur-xl border border-border hover:border-foreground/20 hover:bg-card transition-all h-auto px-3 py-2.5 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-2xl outline-none shadow-xl group text-left">
+              <button className="w-full bg-card/80 backdrop-blur-xl border border-border hover:border-foreground/20 hover:bg-card transition-all h-auto px-3 py-2.5 !ring-0 !ring-offset-0 focus:ring-0 focus:ring-offset-0 rounded-xl outline-none shadow-sm group text-left">
                   <div className="flex items-center justify-between w-full h-12 gap-2">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div className="w-9 h-9 rounded-xl bg-foreground text-background flex items-center justify-center font-semibold text-sm shrink-0">
@@ -161,7 +161,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
               </button>
             }
           />
-          <DropdownMenuContent className="w-[240px] bg-popover border-border backdrop-blur-3xl p-2 relative z-[100] ml-4 rounded-3xl shadow-3xl animate-in fade-in zoom-in-95 duration-200">
+          <DropdownMenuContent className="w-[250px] bg-popover border-border backdrop-blur-xl p-2 relative z-[100] ml-2 rounded-2xl shadow-lg animate-in fade-in zoom-in-95 duration-200">
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-eyebrow px-3 py-2">Your Workspaces</DropdownMenuLabel>
               <DropdownMenuSeparator className="bg-border my-1" />
@@ -170,13 +170,13 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
                   <DropdownMenuItem
                     key={w.id}
                     onClick={() => onChangeActiveWorkspace(w.id)}
-                    className={`cursor-pointer rounded-xl p-3 text-sm transition-all flex items-center gap-3 border border-transparent ${
+                    className={`cursor-pointer rounded-lg p-3 text-sm transition-all flex items-center gap-3 border border-transparent ${
                       w.id === activeWorkspaceId
-                        ? "bg-foreground text-background font-semibold shadow-xl shadow-foreground/10"
+                        ? "bg-foreground text-background font-semibold shadow-sm"
                         : "text-muted-foreground hover:bg-secondary hover:text-foreground hover:border-border"
                     }`}
                   >
-                    <div className={`size-6 rounded-lg flex items-center justify-center font-semibold text-xxs ${
+                    <div className={`size-6 rounded-lg flex items-center justify-center font-semibold text-xs ${
                       w.id === activeWorkspaceId ? "bg-background text-foreground" : "bg-secondary text-muted-foreground"
                     }`}>
                       {w.name.charAt(0).toUpperCase()}
@@ -190,9 +190,9 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
             <DropdownMenuGroup className="space-y-1">
               <DropdownMenuItem 
                 onClick={() => setIsCreateOpen(true)}
-                className="cursor-pointer flex gap-3 items-center text-foreground hover:bg-secondary focus:bg-secondary p-3 rounded-xl font-medium text-sm transition-all"
+                className="cursor-pointer flex gap-3 items-center text-foreground hover:bg-secondary focus:bg-secondary p-3 rounded-lg font-medium text-sm transition-all"
               >
-                <div className="p-1.5 rounded-lg bg-white/5">
+                <div className="p-1.5 rounded-lg bg-secondary">
                   <PlusCircle size={14} />
                 </div>
                 <span>Create Workspace</span>
@@ -202,16 +202,16 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
                   setRenameValue(currentWorkspace?.name || "");
                   setIsRenameOpen(true);
                 }}
-                className="cursor-pointer flex gap-3 items-center text-muted-foreground hover:text-foreground hover:bg-secondary focus:bg-secondary p-3 rounded-xl font-medium text-sm transition-all"
+                className="cursor-pointer flex gap-3 items-center text-muted-foreground hover:text-foreground hover:bg-secondary focus:bg-secondary p-3 rounded-lg font-medium text-sm transition-all"
               >
-                <div className="p-1.5 rounded-lg bg-white/5">
+                <div className="p-1.5 rounded-lg bg-secondary">
                   <PlusCircle size={14} className="rotate-45" />
                 </div>
                 Rename Workspace
               </DropdownMenuItem>
               <DropdownMenuItem 
                 onClick={() => setIsDeleteOpen(true)}
-                className="cursor-pointer flex gap-3 items-center text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-600 p-3 rounded-xl font-medium text-sm transition-all"
+                className="cursor-pointer flex gap-3 items-center text-red-500 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-600 p-3 rounded-lg font-medium text-sm transition-all"
               >
                 <div className="p-1.5 rounded-lg bg-red-500/10">
                   <AlertTriangle size={14} />
@@ -241,7 +241,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
                   placeholder="Workspace Name"
                   value={newWorkspaceName}
                   onChange={(e) => setNewWorkspaceName(e.target.value)}
-                  className="bg-secondary/50 border-border focus:ring-2 focus:ring-purple-500/20 h-12 rounded-xl text-lg font-medium"
+                  className="bg-muted/60 border-border focus:ring-2 focus:ring-primary/20 h-12 rounded-xl text-base font-medium"
                 />
               </div>
               <DialogFooter>
@@ -270,7 +270,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
                   placeholder="New Workspace Name"
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
-                  className="bg-secondary/50 border-border focus:ring-2 focus:ring-purple-500/20 h-12 rounded-xl text-lg font-medium"
+                  className="bg-muted/60 border-border focus:ring-2 focus:ring-primary/20 h-12 rounded-xl text-base font-medium"
                 />
               </div>
               <DialogFooter>

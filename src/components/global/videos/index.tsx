@@ -23,7 +23,7 @@ export default function VideoList({
   const router = useRouter();
   const { data: videoData, isFetched, isPending } = useQueryData(
     [videosKey, folderId || workspaceId],
-    () => getAllUserVideos(folderId || workspaceId)
+    () => getAllUserVideos(workspaceId, folderId)
   );
 
   const { status, data: videos } = (videoData as VideosProps) || { status: 404, data: [] };

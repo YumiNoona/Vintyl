@@ -13,6 +13,12 @@ type FolderListProps = {
 };
 
 export default function FolderList({ workspaceId }: FolderListProps) {
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { data, isFetched } = useQueryData(
     ["workspace-folders", workspaceId],
     () => getWorkspaceFolders(workspaceId)
@@ -25,6 +31,28 @@ export default function FolderList({ workspaceId }: FolderListProps) {
   );
 
   const { status, data: folders } = data as FolderProps;
+
+  if (!mounted) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-muted-foreground text-xl font-bold tracking-tight">Folders</h2>
+          <button
+            disabled
+            className="flex items-center gap-1 text-muted-foreground/60 text-sm font-semibold group"
+          >
+            <div className="bg-secondary p-1 rounded-md">
+              <Plus size={14} />
+            </div>
+            <span>New Folder</span>
+          </button>
+        </div>
+        <div className="flex items-center gap-4 overflow-x-auto w-full pb-2 scrollbar-hide">
+          <p className="text-muted-foreground text-sm font-medium italic">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">

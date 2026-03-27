@@ -115,11 +115,11 @@ export function AuthForm() {
               <form action={loginAction} onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-eyebrow ml-1">Email Address</label>
-                  <input name="email" type="email" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
+                  <input name="email" type="email" required className="w-full bg-muted/60 border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-eyebrow ml-1">Password</label>
-                  <input name="password" type="password" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
+                  <input name="password" type="password" required className="w-full bg-muted/60 border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
                 </div>
                 <button 
                   disabled={isLoginPending}
@@ -140,16 +140,16 @@ export function AuthForm() {
                     type="text"
                     placeholder="Jane Doe"
                     required
-                    className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground"
+                    className="w-full bg-muted/60 border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground"
                   />
                 </div>
                 <div className="space-y-2">
                   <label className="text-eyebrow ml-1">Email Address</label>
-                  <input name="email" type="email" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
+                  <input name="email" type="email" required className="w-full bg-muted/60 border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="name@example.com" />
                 </div>
                 <div className="space-y-2">
                   <label className="text-eyebrow ml-1">Password</label>
-                  <input name="password" type="password" required className="w-full bg-background border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
+                  <input name="password" type="password" required className="w-full bg-muted/60 border border-border rounded-lg px-4 py-2.5 focus:outline-none focus:border-foreground/20 transition-all font-medium placeholder:text-muted-foreground/70 text-foreground" placeholder="••••••••" />
                 </div>
                 <button 
                   disabled={isSignupPending}
@@ -164,7 +164,7 @@ export function AuthForm() {
         </div>
         
         {/* Bottom CTA UX */}
-        <p className="text-caption text-center mt-4">
+        <p className="text-sm text-muted-foreground text-center mt-4">
           {mode === "signin" ? (
             <>
               Don&apos;t have an account?{" "}
@@ -173,7 +173,7 @@ export function AuthForm() {
                   setMode("signup");
                   router.push("/auth?mode=signup");
                 }}
-                className="text-foreground font-medium hover:underline"
+                className="text-foreground font-semibold hover:underline"
               >
                 Create one
               </button>
@@ -186,7 +186,7 @@ export function AuthForm() {
                   setMode("signin");
                   router.push("/auth?mode=signin");
                 }}
-                className="text-foreground font-medium hover:underline"
+                className="text-foreground font-semibold hover:underline"
               >
                 Log in
               </button>
