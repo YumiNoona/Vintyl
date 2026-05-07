@@ -422,6 +422,15 @@ erDiagram
 
 ---
 
+## 🎨 UI Conventions
+
+- **Typography**: Use semantic classes from `globals.css`: `text-display`, `text-page-title`, `text-section-title`, `text-subheading`, `text-body`, `text-body-sm`, `text-caption`, `text-eyebrow`.
+- **Colors**: Use design tokens (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`) — never raw hex.
+- **Font Weights**: Default to `font-medium` / `font-semibold`. Reserve `font-black` for hero usage only.
+- **Layout**: Heading → supporting copy → content grid with consistent spacing rhythm.
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Clone & Install
@@ -474,17 +483,19 @@ cd desktop && npm install && npm start
 
 ---
 
-## 🎨 UI Conventions
+## 🤝 Contributing
 
-- **Typography**: Use semantic classes from `globals.css`: `text-display`, `text-page-title`, `text-section-title`, `text-subheading`, `text-body`, `text-body-sm`, `text-caption`, `text-eyebrow`.
-- **Colors**: Use design tokens (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`) — never raw hex.
-- **Font Weights**: Default to `font-medium` / `font-semibold`. Reserve `font-black` for hero usage only.
-- **Layout**: Heading → supporting copy → content grid with consistent spacing rhythm.
+Contributions are welcome! Please open an issue first to discuss what you'd like to change.
 
 ---
 
 ## 📝 License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](./LICENSE)
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
-This project is licensed under the **MIT License** — see the [LICENSE](./LICENSE) file for details.
+---
+
+<p align="center">
+  <sub>Built with ❤ and obsessive by veil</sub><br/>
+  <a href="https://vintyl.venusapp.in"><strong>vanity.venusapp.in</strong></a>
+</p>
