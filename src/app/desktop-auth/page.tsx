@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { signToken } from "@/lib/db/auth";
 
 export default async function DesktopAuthPage() {
   const supabase = await createClient();
@@ -12,9 +13,8 @@ export default async function DesktopAuthPage() {
     return redirect("/auth");
   }
 
-  const token = session.access_token;
-  const userId = session.user.id;
+  const user = session.user;
+  const token = signToken({ userId: user.id, email: user.email, supabaseId: user.id });
 
-  // Redirect to Electron deep link
-  return redirect(`vintyl://auth?token=${token}&userId=${userId}`);
+  return redirect(`vintyl://auth?token=${token}&userId=${user.id}`);
 }

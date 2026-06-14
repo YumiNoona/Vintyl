@@ -37,6 +37,11 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local database & uploads
+vintyl.db
+uploads/
+express-server/temp_upload/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

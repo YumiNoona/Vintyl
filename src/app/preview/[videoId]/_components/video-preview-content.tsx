@@ -9,8 +9,6 @@ import Comments from "./comments";
 import ShareModal from "@/components/global/share-modal";
 import EditVideo from "@/components/global/videos/edit-video";
 import { useRouter } from "next/navigation";
-import { PLAN_LIMITS } from "@/constants";
-
 type VideoPreviewContentProps = {
   video: {
     id: string;
@@ -26,7 +24,7 @@ type VideoPreviewContentProps = {
       firstName: string | null;
       lastName: string | null;
       image: string | null;
-      supabaseId: string;
+      id: string;
       trial: { trial: boolean } | null;
       subscription: { plan: "FREE" | "PRO" | "TEAM" | "STANDARD" | "ENTERPRISE" } | null;
     } | null;
@@ -113,7 +111,7 @@ export default function VideoPreviewContent({
                   {video.title || "Untitled Video"}
                 </h1>
                 <div className="flex flex-wrap items-center gap-2 shrink-0 pt-1">
-                  {currentUser?.id === video.user?.supabaseId && (
+                  {currentUser?.id === video.user?.id && (
                     <EditVideo
                       videoId={video.id}
                       title={video.title || ""}
@@ -187,16 +185,7 @@ export default function VideoPreviewContent({
                      "{video.summary}"
                    </div>
                 ) : (
-                  PLAN_LIMITS[video.user?.subscription?.plan || "FREE"].ai ? (
-                    <AISummaryButton videoId={video.id} plan={video.user?.subscription?.plan || "FREE"} />
-                  ) : (
-                    <div className="p-6 bg-card border border-dashed border-border rounded-3xl text-body-sm italic">
-                      AI summaries are available on PRO and Team plans. 
-                      <button onClick={() => router.push("/billing")} className="ml-2 text-foreground font-semibold not-italic hover:underline">
-                        Upgrade Now
-                      </button>
-                    </div>
-                  )
+                  <AISummaryButton videoId={video.id} plan="ENTERPRISE" />
                 )}
               </TabsContent>
 

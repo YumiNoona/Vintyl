@@ -68,9 +68,7 @@ Vintyl is a full-stack, production-grade video sharing platform designed for asy
 ### 💳 Payments
 | Feature | Description |
 |---|---|
-| **Stripe Checkout** | Plan upgrade via hosted checkout sessions (PRO, TEAM) |
-| **Webhook Integration** | Automatic subscription sync on successful payment |
-| **Billing Portal** | Self-service plan management for existing subscribers |
+| **Fully Free** | No billing. All features unlocked. Stripe completely removed. |
 
 ---
 
@@ -92,10 +90,10 @@ graph TB
         GROQ["🎙️ Groq Whisper + Llama 3.3<br/><small>Fallback — audio transcription</small>"]
     end
 
-    subgraph Backend["Supabase Backend"]
-        AUTH["🔑 Supabase Auth<br/><small>JWT, session management</small>"]
-        DB["🗄️ Postgres<br/><small>RLS, triggers, indexes</small>"]
-        STORAGE["📦 Supabase Storage<br/><small>vintyl-videos bucket</small>"]
+    subgraph Backend["Local Backend"]
+        AUTH["🔑 JWT Auth<br/><small>bcrypt + jsonwebtoken</small>"]
+        DB["🗄️ SQLite<br/><small>better-sqlite3</small>"]
+        STORAGE["📦 Local Filesystem<br/><small>./uploads/</small>"]
     end
 
     subgraph Payments["Payments"]
@@ -103,7 +101,7 @@ graph TB
     end
 
     ELECTRON -->|"Socket.IO chunks"| EXPRESS
-    EXPRESS -->|"Upload .webm"| STORAGE
+    EXPRESS -->|"Save .webm"| STORAGE
     EXPRESS -->|"Primary AI"| GEMINI
     EXPRESS -->|"Fallback AI"| GROQ
     GEMINI -->|"JSON metadata"| EXPRESS
@@ -113,8 +111,6 @@ graph TB
     BROWSER -->|"Video playback"| STORAGE
     BROWSER <-->|"Auth"| AUTH
     EXPRESS -->|"Verify JWT"| AUTH
-    BROWSER <-->|"Checkout"| STRIPE
-    STRIPE -->|"Webhook"| BROWSER
 ```
 
 ### Recording Data Flow
@@ -161,13 +157,13 @@ sequenceDiagram
 | **UI** | ShadCN UI, Framer Motion, Lucide Icons | Component library, animations, icons |
 | **State** | React Query (TanStack), React Context | Server state caching, recording state |
 | **Backend** | Express.js, Socket.IO | Real-time video chunk processing |
-| **Auth** | Supabase Auth | JWT sessions, OAuth-ready |
-| **Database** | Supabase Postgres | RLS, triggers, composite indexes |
-| **Storage** | Supabase Storage | Video file hosting (`vintyl-videos`) |
-| **AI (Primary)** | Google Gemini 1.5 Flash | Multimodal video analysis |
-| **AI (Fallback)** | Groq Whisper + Llama 3.3 70B | Audio transcription + text summarization |
+| **Auth** | Local JWT (bcrypt + jsonwebtoken) | Cookie-based sessions |
+| **Database** | SQLite (better-sqlite3) | Zero-config, file-based |
+| **Storage** | Local filesystem | Videos stored in `./uploads/` |
+| **AI (Primary)** | Google Gemini 1.5 Flash (optional) | Multimodal video analysis |
+| **AI (Fallback)** | Groq Whisper + Llama 3.3 70B (optional) | Audio transcription + text summarization |
 | **Desktop** | Electron, Keytar | Screen capture, secure token storage |
-| **Payments** | Stripe | Subscriptions, webhooks, billing portal |
+| **Payments** | None (fully free) | All features unlocked |
 | **Forms** | React Hook Form, Zod | Validation and form management |
 
 ---
@@ -440,46 +436,32 @@ cd Vintyl
 npm install
 ```
 
-### 2. Environment Configuration
-Create a `.env` file in the root directory with these keys:
+### 2. Environment Configuration (Optional)
+No environment variables are required. Everything works out of the box.
+
+Optional keys for AI features:
 
 ```env
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-DATABASE_URL=your_postgres_connection_string
-
-# App
-NEXT_PUBLIC_HOST_URL=http://localhost:3000
-
-# AI
+# AI (only needed if you want auto-transcription/summaries)
 GEMINI_API_KEY=your_gemini_key
 GROQ_API_KEY=your_groq_key
-
-# Stripe
-STRIPE_SECRET_KEY=your_stripe_secret
-STRIPE_WEBHOOK_SECRET=your_webhook_secret
-STRIPE_PUBLISHABLE_KEY=your_publishable_key
-STRIPE_PRO_PRICE_ID=price_xxx
-STRIPE_TEAM_PRICE_ID=price_xxx
 ```
 
-### 3. Database Setup
-Run `FullDatabaseSchema.sql` in the Supabase SQL Editor. This creates all tables, indexes, triggers, RLS policies, and bootstraps existing users.
-
-### 4. Run the Platform
+### 3. Run the Platform
 
 ```bash
-# Terminal 1 — Web Frontend
+# Terminal 1 — Web Frontend (Next.js + API)
 npm run dev                              # → localhost:3000
 
-# Terminal 2 — Processing Server
+# Terminal 2 — Processing Server (Socket.IO for desktop recordings)
 cd express-server && npm install && node index.js   # → localhost:5050
 
-# Terminal 3 — Desktop Recorder
+# Terminal 3 — Desktop Recorder (optional)
 cd desktop && npm install && npm start
 ```
+
+> **No cloud services needed.** SQLite auto-creates on first run. No Docker, no Postgres, no Supabase, no Stripe.
+> All plan features are unlocked (ENTERPRISE tier). AI is optional — skip if you don't need transcripts.
 
 ---
 

@@ -1,37 +1,26 @@
 "use server";
 
 import { createClient, createSystemClient } from "@/lib/supabase/server";
-import axios from "axios";
-const { PLAN_LIMITS } = require("../../shared/planLimits");
+import { getDb } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
+import { deleteVideo as deleteVideoFile } from "@/lib/storage-local";
+import path from "path";
 
 export const verifyAccessToWorkspace = async (workspaceId: string) => {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
-
     if (!user) return { status: 403 };
 
-    // Use system client to bypass the self-referencing RLS policy on Member
-    // which causes 0 rows to be returned even for valid members
-    const systemSupabase = await createSystemClient();
-    const { data: member, error } = await systemSupabase
-      .from("Member")
-      .select("workspaceId")
-      .eq("workspaceId", workspaceId)
-      .eq("supabaseId", user.id)
-      .maybeSingle();
+    const db = getDb();
+    const member = db.prepare(
+      'SELECT workspaceId FROM "Member" WHERE workspaceId = ? AND supabaseId = ?'
+    ).get(workspaceId, user.id) as any;
 
-    if (error || !member) {
-      console.log("❌ verifyAccessToWorkspace: Access denied via Member table", { workspaceId, supabaseId: user.id });
-      return { status: 403 };
-    }
+    if (!member) return { status: 403 };
 
-    return {
-      status: 200,
-      data: { workspaceId: member.workspaceId },
-    };
+    return { status: 200, data: { workspaceId: member.workspaceId } };
   } catch (error) {
-    console.error("❌ verifyAccessToWorkspace Error:", error);
     return { status: 403 };
   }
 };
@@ -42,17 +31,12 @@ export const getFirstWorkspaceForUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    // Use system client to bypass the same RLS issue on Member table
-    const systemSupabase = await createSystemClient();
-    const { data: member, error } = await systemSupabase
-      .from("Member")
-      .select("workspaceId")
-      .eq("supabaseId", user.id)
-      .limit(1)
-      .maybeSingle();
+    const db = getDb();
+    const member = db.prepare(
+      'SELECT workspaceId FROM "Member" WHERE supabaseId = ? LIMIT 1'
+    ).get(user.id) as any;
 
-    if (error || !member) return { status: 404 };
-
+    if (!member) return { status: 404 };
     return { status: 200, workspaceId: member.workspaceId };
   } catch (error) {
     return { status: 500 };
@@ -61,26 +45,18 @@ export const getFirstWorkspaceForUser = async () => {
 
 export const getWorkspaceFolders = async (workspaceId: string) => {
   try {
-    // Use system client to bypass RLS circular dependency on Folder table
-    const systemSupabase = await createSystemClient();
-    const { data: folders, error } = await systemSupabase
-      .from("Folder")
-      .select("id, name, createdAt")
-      .eq("workspaceId", workspaceId)
-      .order("createdAt", { ascending: true });
+    const db = getDb();
+    const folders = db.prepare(
+      'SELECT id, name, createdAt FROM "Folder" WHERE workspaceId = ? ORDER BY createdAt ASC'
+    ).all(workspaceId) as any[];
 
-    if (error) console.error("getWorkspaceFolders error:", error.message);
-
-    if (folders && folders.length > 0) {
-      const { data: videos } = await systemSupabase
-        .from("Video")
-        .select("id, folderId")
-        .eq("workspaceId", workspaceId)
-        .eq("processing", false)
-        .not("folderId", "is", null);
+    if (folders.length > 0) {
+      const videos = db.prepare(
+        'SELECT id, folderId FROM "Video" WHERE workspaceId = ? AND processing = 0 AND folderId IS NOT NULL'
+      ).all(workspaceId) as any[];
 
       const folderCountMap = new Map<string, number>();
-      (videos || []).forEach((video: { folderId: string | null }) => {
+      videos.forEach((video: any) => {
         if (!video.folderId) return;
         folderCountMap.set(video.folderId, (folderCountMap.get(video.folderId) || 0) + 1);
       });
@@ -100,37 +76,46 @@ export const getWorkspaceFolders = async (workspaceId: string) => {
   }
 };
 
-export const getAllUserVideos = async (
-  workspaceId: string,
-  folderId?: string
-) => {
+export const getAllUserVideos = async (workspaceId: string, folderId?: string) => {
   try {
-    // Use system client to bypass RLS circular dependency on Video table
-    const systemSupabase = await createSystemClient();
+    const db = getDb();
 
-    // Query only by workspaceId — folderId is a child of workspace, not an alternative root
-    let query = systemSupabase
-      .from("Video")
-      .select("*, Folder(id, name), User(firstName, lastName, image)")
-      .eq("workspaceId", workspaceId)
-      .eq("processing", false);
+    let sql = `SELECT v.*, f.id as f_id, f.name as f_name,
+               u.id as u_id, u.firstName as u_firstName, u.lastName as u_lastName, u.image as u_image
+               FROM "Video" v
+               LEFT JOIN "Folder" f ON f.id = v.folderId
+               LEFT JOIN "User" u ON u.id = v.userId
+               WHERE v.workspaceId = ? AND v.processing = 0`;
+
+    const params: any[] = [workspaceId];
 
     if (folderId) {
-      query = query.eq("folderId", folderId);
+      sql += ' AND v.folderId = ?';
+      params.push(folderId);
     }
 
-    const { data: videos, error } = await query.order("createdAt", {
-      ascending: false,
-    });
+    sql += ' ORDER BY v.createdAt DESC';
 
-    if (error) console.error("getAllUserVideos error:", error.message);
+    const videos = db.prepare(sql).all(...params) as any[];
 
-    if (videos && videos.length > 0) {
-      // Flatten User and Folder relations for each video
+    if (videos.length > 0) {
       const flattenedVideos = videos.map((v: any) => ({
-        ...v,
-        User: Array.isArray(v.User) ? v.User[0] : v.User,
-        Folder: Array.isArray(v.Folder) ? v.Folder[0] : v.Folder,
+        id: v.id,
+        title: v.title,
+        description: v.description,
+        source: v.source,
+        processing: v.processing,
+        views: v.views,
+        isPublic: v.isPublic,
+        transcript: v.transcript,
+        summary: v.summary,
+        workspaceId: v.workspaceId,
+        folderId: v.folderId,
+        userId: v.userId,
+        planAtCreation: v.planAtCreation,
+        createdAt: v.createdAt,
+        Folder: v.f_id ? { id: v.f_id, name: v.f_name } : null,
+        User: v.u_id ? { firstName: v.u_firstName, lastName: v.u_lastName, image: v.u_image } : null,
       }));
       return { status: 200, data: flattenedVideos };
     }
@@ -147,35 +132,44 @@ export const getWorkspaces = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const { data: userData } = await supabase
-      .from("User")
-      .select("subscription:Subscription(plan), workspace:Workspace(id, name, type), Member(workspace:Workspace(id, name, type))")
-      .eq("supabaseId", user.id)
-      .single();
+    const db = getDb();
+    const rows = db.prepare(`
+      SELECT u.id, u.supabaseId, u.email, u.firstName, u.lastName, u.image,
+             s.plan as sub_plan,
+             w.id as ws_id, w.name as ws_name, w.type as ws_type,
+             m.workspaceId as m_ws_id
+      FROM "User" u
+      LEFT JOIN "Subscription" s ON s.userId = u.id
+      LEFT JOIN "Workspace" w ON w.userId = u.id
+      LEFT JOIN "Member" m ON m.userId = u.id AND m.workspaceId != w.id
+      WHERE u.id = ?
+    `).all(user.id) as any[];
 
-    if (userData) {
-      const allWorkspaces = [
-        ...(userData.workspace || []),
-        ...(userData.Member?.map((m: any) => m.workspace).filter(Boolean) || [])
-      ];
+    if (rows.length > 0) {
+      const workspaceMap = new Map<string, any>();
 
-      // Deduplicate by id — prevents double entries when user is member of own workspace
-      const uniqueWorkspaces = Array.from(
-        new Map(allWorkspaces.map((w: any) => [w.id, w])).values()
-      );
-
-      // Flatten Subscription
-      const subscription = Array.isArray(userData.subscription)
-        ? userData.subscription[0]
-        : userData.subscription;
+      for (const row of rows) {
+        if (row.ws_id && !workspaceMap.has(row.ws_id)) {
+          workspaceMap.set(row.ws_id, { id: row.ws_id, name: row.ws_name, type: row.ws_type });
+        }
+        if (row.m_ws_id && !workspaceMap.has(row.m_ws_id)) {
+          const mWs = db.prepare('SELECT id, name, type FROM "Workspace" WHERE id = ?').get(row.m_ws_id) as any;
+          if (mWs) workspaceMap.set(mWs.id, mWs);
+        }
+      }
 
       return {
         status: 200,
         data: {
-          ...userData,
-          workspace: uniqueWorkspaces,
-          subscription: subscription
-        }
+          id: rows[0].id,
+          supabaseId: rows[0].id,
+          email: rows[0].email,
+          firstName: rows[0].firstName,
+          lastName: rows[0].lastName,
+          image: rows[0].image,
+          subscription: { plan: rows[0].sub_plan || 'FREE' },
+          workspace: Array.from(workspaceMap.values()),
+        },
       };
     }
 
@@ -191,64 +185,20 @@ export const createWorkspace = async (name: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    // Use SYSTEM CLIENT to bypass RLS for provisioning
-    const systemSupabase = await createSystemClient();
+    const db = getDb();
+    const wsId = uuidv4();
+    const now = new Date().toISOString();
 
-    // Lookup the internal User ID first
-    const { data: dbUser } = await systemSupabase
-      .from("User")
-      .select("id")
-      .eq("supabaseId", user.id)
-      .single();
+    db.prepare(
+      `INSERT INTO "Workspace" (id, name, type, userId, createdAt) VALUES (?, ?, 'PUBLIC', ?, ?)`
+    ).run(wsId, name, user.id, now);
 
-    if (!dbUser) return { status: 404, data: "User record not found" };
+    db.prepare(
+      `INSERT INTO "Member" (id, userId, workspaceId, supabaseId, createdAt) VALUES (?, ?, ?, ?, ?)`
+    ).run(uuidv4(), user.id, wsId, user.id, now);
 
-    // Check subscription using internal user ID (not supabase auth ID)
-    const { data: authorized } = await systemSupabase
-      .from("Subscription")
-      .select("plan")
-      .eq("userId", dbUser.id)
-      .single();
-
-    const plan = authorized?.plan || "FREE";
-    const isPro = plan === "PRO";
-
-    // All manually created workspaces should be PUBLIC to prevent hitting the 
-    // unique_personal_workspace constraint in Postgres. 
-    // If you explicitly want to stop FREE users from creating workspaces, 
-    // return a 403 error string here instead of silently returning the old ID.
-    const workspaceType = "PUBLIC";
-
-    const { data: workspace, error } = await systemSupabase
-      .from("Workspace")
-      .insert({
-        name,
-        type: workspaceType,
-        userId: dbUser.id
-      })
-      .select()
-      .single();
-
-    if (workspace && !error) {
-      // Add membership for owner using correct unique constraint (workspaceId, supabaseId)
-      await systemSupabase.from("Member").upsert(
-        { userId: dbUser.id, workspaceId: workspace.id, supabaseId: user.id },
-        { onConflict: "workspaceId, supabaseId" }
-      );
-
-      return {
-        status: 201,
-        data: workspace.id
-      };
-    }
-
-    if (error) {
-      console.error("❌ createWorkspace Error:", error.message);
-    }
-
-    return { status: 400, data: "Failed to create workspace" };
+    return { status: 201, data: wsId };
   } catch (error) {
-    console.error("❌ createWorkspace Catch:", error);
     return { status: 400, data: "Internal error" };
   }
 };
@@ -256,32 +206,18 @@ export const createWorkspace = async (name: string) => {
 export const createFolder = async (workspaceId: string) => {
   try {
     const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) return { status: 403 };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
 
-    // Use system client to bypass RLS for User lookup and Folder insert
-    const systemSupabase = await createSystemClient();
-    const { data: dbUser } = await systemSupabase.from("User").select("id").eq("supabaseId", authUser.id).single();
-    if (!dbUser) return { status: 404 };
+    const db = getDb();
+    const folderId = uuidv4();
+    const now = new Date().toISOString();
 
-    const { data: folder, error } = await systemSupabase
-      .from("Folder")
-      .insert({ workspaceId, userId: dbUser.id, name: "Untitled" })
-      .select()
-      .single();
+    db.prepare(
+      `INSERT INTO "Folder" (id, name, workspaceId, userId, createdAt) VALUES (?, 'Untitled', ?, ?, ?)`
+    ).run(folderId, workspaceId, user.id, now);
 
-    if (error) {
-      console.error("❌ createFolder Error:", error.message);
-      return { status: 400, message: "Could not create folder" };
-    }
-
-    if (folder) {
-      const { revalidatePath } = await import("next/cache");
-      revalidatePath(`/dashboard/${workspaceId}`);
-      return { status: 200, message: "New folder created" };
-    }
-
-    return { status: 400, message: "Failed to create folder" };
+    return { status: 200, message: "New folder created" };
   } catch (error) {
     return { status: 500, message: "Internal error" };
   }
@@ -289,135 +225,53 @@ export const createFolder = async (workspaceId: string) => {
 
 export const renameFolders = async (folderId: string, name: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 403 };
-    // Use system client: Folder RLS checks Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { error } = await systemSupabase
-      .from("Folder")
-      .update({ name })
-      .eq("id", folderId);
-
-    if (!error) {
-      return { status: 200, data: "Folder renamed" };
-    }
-
-    return { status: 400, data: "Folder does not exist" };
+    const db = getDb();
+    db.prepare(`UPDATE "Folder" SET name = ? WHERE id = ?`).run(name, folderId);
+    return { status: 200, data: "Folder renamed" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
 };
 
-export const inviteMembers = async (
-  workspaceId: string,
-  receiverId: string,
-  email: string
-) => {
+export const inviteMembers = async (workspaceId: string, receiverId: string, email: string) => {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const { data: senderInfo } = await supabase
-      .from("User")
-      .select("id, firstName, lastName")
-      .eq("supabaseId", user.id)
-      .single();
+    const db = getDb();
+    const senderInfo = db.prepare('SELECT id, firstName, lastName FROM "User" WHERE id = ?').get(user.id) as any;
+    if (!senderInfo) return { status: 404, data: "User not found" };
 
-    if (senderInfo?.id) {
-      const { data: workspace } = await supabase
-        .from("Workspace")
-        .select("name")
-        .eq("id", workspaceId)
-        .single();
+    const workspace = db.prepare('SELECT name FROM "Workspace" WHERE id = ?').get(workspaceId) as any;
+    if (!workspace) return { status: 404, data: "Workspace not found" };
 
-      if (workspace) {
-        // Enforce Member Limit based on Plan
-        const { data: userPlanData } = await supabase
-          .from("User")
-          .select("Subscription(plan)")
-          .eq("supabaseId", user.id)
-          .single();
-        
-        const plan = (userPlanData?.Subscription as any)?.plan || "FREE";
-        const limit = (PLAN_LIMITS as any)[plan]?.members || 1;
+    const recipient = db.prepare('SELECT id FROM "User" WHERE id = ?').get(receiverId) as any;
+    if (!recipient) return { status: 404, data: "Recipient not found" };
 
-        const { count: currentMembers } = await supabase
-          .from("Member")
-          .select("*", { count: "exact", head: true })
-          .eq("workspaceId", workspaceId);
+    const inviteId = uuidv4();
+    const notifId = uuidv4();
+    const now = new Date().toISOString();
 
-        if (currentMembers !== null && currentMembers >= limit) {
-          return { status: 403, data: `Member limit reached for ${plan} plan (${limit}). Upgrade required.` };
-        }
+    db.prepare(
+      `INSERT INTO "Invite" (id, senderId, receiverId, workspaceId, email, content, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(inviteId, senderInfo.id, receiverId, workspaceId, email, `You are invited to join ${workspace.name} workspace`, now);
 
-        const systemSupabase = await createSystemClient();
-        const { data: recipient } = await systemSupabase
-          .from("User")
-          .select("supabaseId")
-          .eq("id", receiverId)
-          .single();
+    db.prepare(
+      `INSERT INTO "Notification" (id, userId, content, inviteId, createdAt) VALUES (?, ?, ?, ?, ?)`
+    ).run(notifId, receiverId, `${senderInfo.firstName} ${senderInfo.lastName} invited you to ${workspace.name}`, inviteId, now);
 
-        const { data: newInvite, error: inviteError } = await supabase
-          .from("Invite")
-          .insert({
-            senderId: senderInfo.id,
-            receiverId,
-            receiverSupabaseId: recipient?.supabaseId,
-            workspaceId,
-            email,
-            content: `You are invited to join ${workspace.name} workspace`,
-          })
-          .select("id")
-          .single();
-
-        // FIX #7: Store inviteId on the notification so the activity page
-        // can pass the correct invite ID to InviteAcceptButton (not notification.id)
-        await supabase.from("Notification").insert({
-          userId: receiverId,
-          content: `${senderInfo.firstName} ${senderInfo.lastName} invited you to ${workspace.name}`,
-          inviteId: newInvite?.id ?? null,
-        });
-
-        if (!inviteError) {
-          return { status: 200, data: "Invite sent" };
-        }
-
-        return { status: 400, data: "Invite not sent" };
-      }
-
-      return { status: 404, data: "Workspace not found" };
-    }
-
-    return { status: 404, data: "Recipient not found" };
+    return { status: 200, data: "Invite sent" };
   } catch (error) {
     return { status: 400, data: "Internal error" };
   }
 };
 
-export const moveVideoLocation = async (
-  videoId: string,
-  workSpaceId: string,
-  folderId: string
-) => {
+export const moveVideoLocation = async (videoId: string, workSpaceId: string, folderId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 403 };
-    // Use system client: Video RLS checks Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { error } = await systemSupabase
-      .from("Video")
-      .update({
-        folderId: folderId || null,
-        workspaceId: workSpaceId,
-      })
-      .eq("id", videoId);
-
-    if (!error) return { status: 200, data: "folder changed successfully" };
-
-    return { status: 404, data: "workspace/folder not found" };
+    const db = getDb();
+    db.prepare(`UPDATE "Video" SET folderId = ?, workspaceId = ? WHERE id = ?`).run(folderId || null, workSpaceId, videoId);
+    return { status: 200, data: "folder changed successfully" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
@@ -429,46 +283,24 @@ export const acceptInvite = async (inviteId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401 };
 
-    const { data: dbUser } = await supabase
-      .from("User")
-      .select("id")
-      .eq("supabaseId", user.id)
-      .single();
-
-    if (!dbUser) return { status: 404, data: "User not found" };
-
-    const { data: invite } = await supabase
-      .from("Invite")
-      .select("*, Workspace(name)")
-      .eq("id", inviteId)
-      .single();
-
+    const db = getDb();
+    const invite = db.prepare('SELECT * FROM "Invite" WHERE id = ?').get(inviteId) as any;
     if (!invite) return { status: 404, data: "Invite not found" };
     if (invite.accepted) return { status: 400, data: "Invite already accepted" };
-
     if (invite.email && user.email !== invite.email) {
       return { status: 401, data: "This invite was sent to a different email address" };
     }
 
-    const { error: inviteUpdateError } = await supabase
-      .from("Invite")
-      .update({ accepted: true })
-      .eq("id", inviteId);
+    db.prepare(`UPDATE "Invite" SET accepted = 1 WHERE id = ?`).run(inviteId);
 
-    const { error: memberError } = await supabase
-      .from("Member")
-      .insert({
-        userId: dbUser.id,
-        workspaceId: invite.workspaceId,
-        supabaseId: user.id
-      });
+    db.prepare(
+      `INSERT INTO "Member" (id, userId, workspaceId, supabaseId, createdAt) VALUES (?, ?, ?, ?, ?)`
+    ).run(uuidv4(), user.id, invite.workspaceId, user.id, new Date().toISOString());
 
-    await supabase.from("Notification").insert({
-      userId: invite.senderId!,
-      content: `${user.user_metadata?.first_name || user.email} accepted the invite to ${invite.Workspace.name}`,
-    });
-
-    if (inviteUpdateError || memberError) throw new Error("Failed to accept invite");
+    const workspace = db.prepare('SELECT name FROM "Workspace" WHERE id = ?').get(invite.workspaceId) as any;
+    db.prepare(
+      `INSERT INTO "Notification" (id, userId, content, createdAt) VALUES (?, ?, ?, ?)`
+    ).run(uuidv4(), invite.senderId, `${user.email} accepted the invite to ${workspace?.name || 'workspace'}`, new Date().toISOString());
 
     return { status: 200, data: "Invite accepted" };
   } catch (error) {
@@ -478,79 +310,40 @@ export const acceptInvite = async (inviteId: string) => {
 
 export const getWorkspaceMembers = async (workspaceId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) return { status: 403 };
+    const db = getDb();
 
-    const { data: members, error } = await supabase
-      .from("Workspace")
-      .select(`
-        id,
-        User (
-          id,
-          firstName,
-          lastName,
-          email,
-          image
-        ),
-        members:Member (
-          user:User (
-            id,
-            firstName,
-            lastName,
-            email,
-            image
-          )
-        )
-      `)
-      .eq("id", workspaceId)
-      .single();
+    const ws = db.prepare('SELECT id, userId FROM "Workspace" WHERE id = ?').get(workspaceId) as any;
+    if (!ws) return { status: 404 };
 
-    if (error || !members) return { status: 404 };
+    const owner = db.prepare('SELECT id, firstName, lastName, email, image FROM "User" WHERE id = ?').get(ws.userId) as any;
 
-    // PostgREST might return relations as arrays. We flatten them for the frontend.
-    const owner = Array.isArray(members.User) ? members.User[0] : members.User;
-
-    // Deduplicate members list by unique userId
-    const memberMap = new Map();
-    (members.members || []).forEach((m: any) => {
-      const u = Array.isArray(m.user) ? m.user[0] : m.user;
-      if (u && u.id !== owner?.id) {
-        memberMap.set(u.id, { ...m, user: u });
-      }
-    });
+    const members = db.prepare(`
+      SELECT u.id, u.firstName, u.lastName, u.email, u.image
+      FROM "Member" m
+      JOIN "User" u ON u.id = m.userId
+      WHERE m.workspaceId = ? AND m.userId != ?
+    `).all(workspaceId, ws.userId) as any[];
 
     return {
       status: 200,
       data: {
-        ...members,
+        id: ws.id,
         user: owner,
-        members: Array.from(memberMap.values()),
+        members: members.map((m: any) => ({
+          user: m,
+        })),
       },
     };
   } catch (error) {
-    console.error("❌ getWorkspaceMembers Error:", error);
     return { status: 400 };
   }
 };
 
 export const deleteFolder = async (folderId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 403 };
-    // Use system client: Folder RLS checks Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { error } = await systemSupabase
-      .from("Folder")
-      .delete()
-      .eq("id", folderId);
-
-    if (!error) {
-      return { status: 200, data: "Folder deleted" };
-    }
-
-    return { status: 400, data: "Folder not found" };
+    const db = getDb();
+    db.prepare(`DELETE FROM "Folder" WHERE id = ?`).run(folderId);
+    return { status: 200, data: "Folder deleted" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
@@ -559,27 +352,12 @@ export const deleteFolder = async (folderId: string) => {
 export const renameWorkspace = async (workspaceId: string, name: string) => {
   try {
     const supabase = await createClient();
-    const { data: { user: authUser } } = await supabase.auth.getUser();
-    if (!authUser) return { status: 403 };
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { status: 403 };
 
-    // Lookup internal User ID
-    const { data: dbUser } = await supabase.from("User").select("id").eq("supabaseId", authUser.id).single();
-    if (!dbUser) return { status: 404 };
-
-    const { error } = await supabase
-      .from("Workspace")
-      .update({ name })
-      .eq("id", workspaceId)
-      .eq("userId", dbUser.id);
-
-    if (!error) {
-      const { revalidatePath } = await import("next/cache");
-      revalidatePath(`/dashboard/${workspaceId}`);
-      revalidatePath("/dashboard");
-      return { status: 200, data: "Workspace renamed" };
-    }
-
-    return { status: 400, data: "Workspace not found" };
+    const db = getDb();
+    db.prepare(`UPDATE "Workspace" SET name = ? WHERE id = ? AND userId = ?`).run(name, workspaceId, user.id);
+    return { status: 200, data: "Workspace renamed" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
@@ -591,91 +369,33 @@ export const deleteWorkspace = async (workspaceId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    // FIX #6: Must use internal User.id (not supabase auth UUID) to match Workspace.userId FK
-    const systemSupabase = await createSystemClient();
-    const { data: dbUser } = await systemSupabase
-      .from("User")
-      .select("id")
-      .eq("supabaseId", user.id)
-      .single();
-
-    if (!dbUser) return { status: 404, data: "User not found" };
-
-    const { error } = await systemSupabase
-      .from("Workspace")
-      .delete()
-      .eq("id", workspaceId)
-      .eq("userId", dbUser.id);
-
-    if (!error) {
-      return { status: 200, data: "Workspace deleted" };
-    }
-
-    return { status: 400, data: "Workspace not found" };
+    const db = getDb();
+    db.prepare(`DELETE FROM "Workspace" WHERE id = ? AND userId = ?`).run(workspaceId, user.id);
+    return { status: 200, data: "Workspace deleted" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
 };
 
-export const updateFolderLocation = async (
-  folderId: string,
-  workspaceId: string,
-) => {
+export const updateFolderLocation = async (folderId: string, workspaceId: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 403 };
-    // Use system client: Folder RLS checks Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { error } = await systemSupabase
-      .from("Folder")
-      .update({ workspaceId })
-      .eq("id", folderId);
-
-    if (!error) return { status: 200, data: "Folder moved successfully" };
-
-    return { status: 404, data: "Folder not found" };
+    const db = getDb();
+    db.prepare(`UPDATE "Folder" SET workspaceId = ? WHERE id = ?`).run(workspaceId, folderId);
+    return { status: 200, data: "Folder moved successfully" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
 };
 
 export const getHowToPost = async () => {
-  try {
-    const posts = await axios.get(process.env.CLOUD_WAYS_POSTS as string);
-    if (posts.data) {
-      return {
-        status: 200,
-        data: {
-          title: posts.data[0].title.rendered,
-          content: posts.data[0].content.rendered,
-        },
-      };
-    }
-    return { status: 404 };
-  } catch (error) {
-    return { status: 400 };
-  }
+  return { status: 404 };
 };
 
-export const editVideoInfo = async (
-  videoId: string,
-  title: string,
-  description: string
-) => {
+export const editVideoInfo = async (videoId: string, title: string, description: string) => {
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { status: 403 };
-    // Use system client: Video RLS checks Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { error } = await systemSupabase
-      .from("Video")
-      .update({ title, description })
-      .eq("id", videoId);
-
-    if (!error) return { status: 200, data: "Video details updated" };
-    return { status: 404, data: "Video not found" };
+    const db = getDb();
+    db.prepare(`UPDATE "Video" SET title = ?, description = ? WHERE id = ?`).run(title, description, videoId);
+    return { status: 200, data: "Video details updated" };
   } catch (error) {
     return { status: 400, data: "Failed to update video" };
   }
@@ -687,45 +407,20 @@ export const deleteVideo = async (videoId: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 403 };
 
-    const systemSupabase = await createSystemClient();
-    const { data: dbUser } = await systemSupabase
-      .from("User")
-      .select("id")
-      .eq("supabaseId", user.id)
-      .single();
-
-    if (!dbUser) return { status: 404, data: "User not found" };
-
-    const { data: video } = await systemSupabase
-      .from("Video")
-      .select("source")
-      .eq("id", videoId)
-      .eq("userId", dbUser.id)
-      .single();
+    const db = getDb();
+    const video = db.prepare('SELECT source FROM "Video" WHERE id = ? AND userId = ?').get(videoId, user.id) as any;
 
     if (!video) return { status: 404, data: "Video not found or unauthorized" };
 
-    const key = video.source.split("/").pop();
-    if (!key) throw new Error("Could not parse storage key");
+    db.prepare(`DELETE FROM "Video" WHERE id = ?`).run(videoId);
 
-    const { error: dbError } = await systemSupabase
-      .from("Video")
-      .delete()
-      .eq("id", videoId);
-
-    if (dbError) throw dbError;
-
-    const { error: storageError } = await supabase.storage
-      .from("vintyl-videos")
-      .remove([key]);
-
-    if (storageError) {
-      console.error("Supabase Storage Delete Error:", storageError);
+    if (video.source) {
+      const key = path.basename(video.source);
+      deleteVideoFile(key);
     }
 
     return { status: 200, data: "Video removed permanently" };
   } catch (error) {
-    console.error("Delete Error:", error);
     return { status: 500, data: "Internal error" };
   }
 };

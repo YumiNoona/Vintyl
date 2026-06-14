@@ -1,48 +1,39 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Monitor, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function DesktopAuthPage() {
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [user, setUser] = useState<any>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const supabase = createClient();
-    
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        setUser(session.user);
-        setToken(session.access_token);
-        setStatus("ready");
-      } else {
-        // Not logged in
-        window.location.href = "/auth";
+      try {
+        const res = await fetch("/api/debug");
+        const data = await res.json();
+        if (data.user?.email) {
+          setEmail(data.user.email);
+          setToken(data.user.id);
+          setStatus("ready");
+        } else {
+          window.location.href = "/auth";
+        }
+      } catch {
+        setStatus("error");
       }
     };
-
     checkSession();
   }, []);
 
   const handleLink = () => {
     if (!token) return;
-    
-    // Deep link to Electron
-    const deepLinkUrl = `vintyl://auth?token=${token}`;
+    const deepLinkUrl = `vintyl://auth?token=${token}&userId=${token}`;
     window.location.href = deepLinkUrl;
-    
-    // Show success state after a short delay (assuming link opened)
-    setTimeout(() => {
-        setStatus("loading");
-        // We can't really know if they linked, so we just show a "Done" state
-        // and tell them to go back to the app.
-    }, 1000);
+    setTimeout(() => setStatus("loading"), 1000);
   };
 
   return (
@@ -69,10 +60,10 @@ export default function DesktopAuthPage() {
             <div className="space-y-6">
               <div className="p-4 rounded-xl bg-secondary/50 border border-border flex items-center gap-4">
                 <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center text-purple-600 font-bold uppercase">
-                  {user?.email?.charAt(0)}
+                  {email?.charAt(0)}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-sm font-semibold">{user?.email}</span>
+                  <span className="text-sm font-semibold">{email}</span>
                   <span className="text-xs text-muted-foreground">Logged in via Web</span>
                 </div>
                 <CheckCircle2 size={16} className="ml-auto text-green-500" />

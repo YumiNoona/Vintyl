@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { logout } from "@/actions/auth";
 import { useRouter } from "next/navigation";
 import { useQueryData } from "@/hooks/useQueryData";
 import { getNotifications, getUserProfile } from "@/actions/user";
@@ -27,8 +27,7 @@ function SupabaseUserButton() {
   const user = (profileData as any)?.data;
 
   const handleSignOut = async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await logout();
     router.push("/auth");
   };
 

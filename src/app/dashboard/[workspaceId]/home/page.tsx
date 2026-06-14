@@ -10,7 +10,7 @@ type Props = {
 const HomePage = async ({ params }: Props) => {
   const { workspaceId } = await params;
   
-  const post = await getHowToPost();
+  const post: any = await getHowToPost();
 
   return (
     <div className="flex flex-col gap-y-10">

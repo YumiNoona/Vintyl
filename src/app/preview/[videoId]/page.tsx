@@ -11,7 +11,6 @@ export default async function VideoPreviewPage({
 }) {
   const { videoId } = await params;
 
-  // Verify session FIRST — data failure must not masquerade as auth failure
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -21,18 +20,15 @@ export default async function VideoPreviewPage({
 
   const video = await getVideoDetails(videoId);
 
-  // Show 404 — not a redirect to auth — when video is missing
   if (video.status !== 200 || !video.data) {
     return notFound();
   }
 
-  let dbUser = null;
-  const { data: userData } = await supabase
-    .from("User")
-    .select("id, firstName, lastName, image")
-    .eq("supabaseId", user.id)
-    .single();
-  dbUser = userData;
+  const videoData = video.data as any;
+  const mappedData = {
+    ...videoData,
+    user: videoData.User || videoData.user || null,
+  };
 
-  return <VideoPreviewContent video={video.data} currentUser={dbUser || undefined} />;
+  return <VideoPreviewContent video={mappedData} currentUser={user} />;
 }

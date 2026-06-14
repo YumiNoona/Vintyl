@@ -1,108 +1,110 @@
 "use server";
 
-// All DB operations use the system client (service role) to bypass RLS.
-// The Member RLS policy is a direct supabaseId check — any query that JOINs
-// or subqueries Member from another policy would cause infinite recursion.
-// Using the system client is safe because authentication is verified via
-// supabase.auth.getUser() before any write operation.
 import { createClient, createSystemClient } from "@/lib/supabase/server";
+import { getDb } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
 
 export const getVideoDetails = async (videoId: string) => {
   try {
-    const SELECT_QUERY = "*, Folder(id, name), User(*, Subscription(plan))";
-
-    // Use system client to bypass Video RLS (which checks Member, triggering recursion)
-    const systemSupabase = await createSystemClient();
-    const { data: video, error } = await systemSupabase
-      .from("Video")
-      .select(SELECT_QUERY)
-      .eq("id", videoId)
-      .single();
-
-    if (error) {
-      console.error("getVideoDetails error:", error.message);
-    }
+    const db = getDb();
+    const video = db.prepare(`
+      SELECT v.*,
+             f.id as f_id, f.name as f_name,
+             u.id as u_id, u.firstName as u_firstName, u.lastName as u_lastName,
+             u.image as u_image, u.email as u_email,
+             s.plan as sub_plan
+      FROM "Video" v
+      LEFT JOIN "Folder" f ON f.id = v.folderId
+      LEFT JOIN "User" u ON u.id = v.userId
+      LEFT JOIN "Subscription" s ON s.userId = u.id
+      WHERE v.id = ?
+    `).get(videoId) as any;
 
     if (video) {
-      const folder = Array.isArray(video.Folder) ? video.Folder[0] : video.Folder;
-      const rawUser = Array.isArray(video.User) ? video.User[0] : video.User;
-
-      const user = rawUser ? {
-        ...rawUser,
-        Subscription: Array.isArray(rawUser.Subscription) ? rawUser.Subscription[0] : rawUser.Subscription,
-      } : null;
-
-      return { status: 200, data: { ...video, Folder: folder, User: user }, author: true };
+      const result = {
+        id: video.id,
+        title: video.title,
+        description: video.description,
+        source: video.source,
+        views: video.views,
+        createdAt: video.createdAt,
+        processing: video.processing,
+        summary: video.summary,
+        transcript: video.transcript,
+        isPublic: video.isPublic,
+        workspaceId: video.workspaceId,
+        folderId: video.folderId,
+        userId: video.userId,
+        planAtCreation: video.planAtCreation,
+        Folder: video.f_id ? { id: video.f_id, name: video.f_name } : null,
+        User: video.u_id ? {
+          id: video.u_id,
+          firstName: video.u_firstName,
+          lastName: video.u_lastName,
+          image: video.u_image,
+          email: video.u_email,
+          supabaseId: video.u_id,
+          subscription: video.sub_plan ? { plan: video.sub_plan } : null,
+          trial: null,
+        } : null,
+      };
+      return { status: 200, data: result, author: true };
     }
 
     return { status: 404, data: null };
   } catch (error) {
-    console.error("getVideoDetails error:", error);
     return { status: 400, data: null };
   }
 };
 
 export const getVideoComments = async (videoId: string) => {
   try {
-    // Use system client: Comment RLS JOINs Video+Member which would recurse
-    const systemSupabase = await createSystemClient();
-    const { data: comments, error } = await systemSupabase
-      .from("Comment")
-      .select("*, User(id, firstName, lastName, image)")
-      .eq("videoId", videoId)
-      .order("createdAt", { ascending: false });
+    const db = getDb();
+    const comments = db.prepare(`
+      SELECT c.*, u.id as u_id, u.firstName as u_firstName, u.lastName as u_lastName, u.image as u_image
+      FROM "Comment" c
+      LEFT JOIN "User" u ON u.id = c.userId
+      WHERE c.videoId = ?
+      ORDER BY c.createdAt DESC
+    `).all(videoId) as any[];
 
-    if (error) {
-      console.error("❌ getVideoComments Error:", error.message);
-      return { status: 400, data: [] };
-    }
-
-    const flattenedComments = (comments || []).map((c: any) => {
-      // Postgres returns uppercase User, but the UI expects lowercase user
-      const userObj = Array.isArray(c.User) ? c.User[0] : c.User;
-      return {
-        ...c,
-        user: userObj,
-      };
-    });
+    const flattenedComments = comments.map((c: any) => ({
+      id: c.id,
+      comment: c.comment,
+      reply: !!c.reply,
+      commentId: c.commentId,
+      videoId: c.videoId,
+      userId: c.userId,
+      createdAt: c.createdAt,
+      User: c.u_id ? {
+        id: c.u_id,
+        firstName: c.u_firstName,
+        lastName: c.u_lastName,
+        image: c.u_image,
+      } : null,
+    }));
 
     return { status: 200, data: flattenedComments };
   } catch (error) {
-    console.error("❌ getVideoComments Catch:", error);
     return { status: 400, data: [] };
   }
 };
 
-export const createComment = async (
-  videoId: string,
-  comment: string,
-  commentId?: string,
-  userId?: string
-) => {
+export const createComment = async (videoId: string, comment: string, commentId?: string, userId?: string) => {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 401, data: "Unauthorized" };
 
-    // Use system client: Comment WITH CHECK also touches Member
-    const systemSupabase = await createSystemClient();
-    const { data: newComment, error } = await systemSupabase
-      .from("Comment")
-      .insert({
-        comment,
-        videoId,
-        userId,
-        commentId: commentId || null,
-        reply: !!commentId,
-      })
-      .select()
-      .single();
+    const db = getDb();
+    const commentIdGen = uuidv4();
+    const now = new Date().toISOString();
 
-    if (newComment && !error) {
-      return { status: 200, data: "Comment posted" };
-    }
+    db.prepare(
+      `INSERT INTO "Comment" (id, comment, videoId, userId, commentId, reply, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?)`
+    ).run(commentIdGen, comment, videoId, userId || user.id, commentId || null, commentId ? 1 : 0, now);
 
-    return { status: 400, data: "Failed to post comment" };
+    return { status: 200, data: "Comment posted" };
   } catch (error) {
     return { status: 500, data: "Internal error" };
   }
@@ -118,20 +120,12 @@ export const incrementVideoViews = async (videoId: string) => {
       return { status: 200, message: "View already counted" };
     }
 
-    // Use system client: avoids Video RLS recursion
-    const systemSupabase = await createSystemClient();
-    const { data: video } = await systemSupabase
-      .from("Video")
-      .select("userId, title, views")
-      .eq("id", videoId)
-      .single();
+    const db = getDb();
+    const video = db.prepare('SELECT userId, title, views FROM "Video" WHERE id = ?').get(videoId) as any;
 
     if (!video) return { status: 404 };
 
-    await systemSupabase
-      .from("Video")
-      .update({ views: (video.views || 0) + 1 })
-      .eq("id", videoId);
+    db.prepare(`UPDATE "Video" SET views = ? WHERE id = ?`).run((video.views || 0) + 1, videoId);
 
     cookieStore.set(`viewed_${videoId}`, "true", {
       maxAge: 60 * 60 * 24,
@@ -139,65 +133,48 @@ export const incrementVideoViews = async (videoId: string) => {
     });
 
     if (video.userId) {
-      await systemSupabase.from("Notification").insert({
-        userId: video.userId,
-        content: `Someone just viewed your video: ${video.title || "Untitled"}`,
-      });
+      const notifId = uuidv4();
+      const now = new Date().toISOString();
+      db.prepare(
+        `INSERT INTO "Notification" (id, userId, content, createdAt) VALUES (?, ?, ?, ?)`
+      ).run(notifId, video.userId, `Someone just viewed your video: ${video.title || "Untitled"}`, now);
     }
 
     return { status: 200 };
   } catch (error) {
-    console.error("Failed to increment views:", error);
     return { status: 400 };
   }
 };
 
 export const transcribeVideo = async (videoId: string) => {
   try {
-    const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
-    const supabase = getSupabaseAdmin();
-
-    await supabase
-      .from("Video")
-      .update({
-        transcript: "This is an AI-generated transcript of your video recording. Our Whisper model has processed the audio track and extracted the spoken words accurately.",
-      })
-      .eq("id", videoId);
+    const db = getDb();
+    db.prepare(`UPDATE "Video" SET transcript = ? WHERE id = ?`).run(
+      "This is an AI-generated transcript of your video recording. Our Whisper model has processed the audio track and extracted the spoken words accurately.",
+      videoId
+    );
 
     await generateSummary(videoId);
-
     return { status: 200 };
   } catch (error) {
-    console.error("Transcription error:", error);
     return { status: 500 };
   }
 };
 
 export const generateSummary = async (videoId: string) => {
   try {
-    const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
-    const supabase = getSupabaseAdmin();
-    const { data: video } = await supabase
-      .from("Video")
-      .select("transcript")
-      .eq("id", videoId)
-      .single();
+    const db = getDb();
+    const video = db.prepare('SELECT transcript FROM "Video" WHERE id = ?').get(videoId) as any;
 
     if (!video || !video.transcript) return { status: 404 };
 
-    const summary = "In this video, the recorder demonstrates the platform features and discusses the integration between the desktop and web components. Key points include the new AI pipeline and the streamlined sharing UX.";
-
-    await supabase
-      .from("Video")
-      .update({
-        summary,
-        processing: false,
-      })
-      .eq("id", videoId);
+    db.prepare(`UPDATE "Video" SET summary = ?, processing = 0 WHERE id = ?`).run(
+      "In this video, the recorder demonstrates the platform features and discusses the integration between the desktop and web components. Key points include the new AI pipeline and the streamlined sharing UX.",
+      videoId
+    );
 
     return { status: 200 };
   } catch (error) {
-    console.error("Summary error:", error);
     return { status: 500 };
   }
 };

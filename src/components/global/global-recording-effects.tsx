@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRecording } from "@/context/RecordingContext";
 import RecordingOverlay from "./recording-overlay";
 import RecordPreview from "@/components/recording/record-preview";
-import { createClient } from "@/lib/supabase/client";
+
 import { useParams } from "next/navigation";
 
 export default function GlobalRecordingEffects() {
@@ -20,10 +20,9 @@ export default function GlobalRecordingEffects() {
   const workspaceId = params.workspaceId as string;
 
   useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
+    fetch("/api/debug").then(res => res.json()).then(data => {
       setUserId(data.user?.id ?? null);
-    });
+    }).catch(() => {});
   }, []);
 
   return (

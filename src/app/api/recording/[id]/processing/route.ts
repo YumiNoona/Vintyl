@@ -1,129 +1,64 @@
-import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { NextRequest, NextResponse } from "next/server"
-import { PLAN_LIMITS } from "@/shared/planLimits"
+import { getDb } from "@/lib/db"
+import { v4 as uuidv4 } from "uuid"
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  return NextResponse.json({ plan: "ENTERPRISE", status: 200 })
+}
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const supabaseAdmin = getSupabaseAdmin()
     const { id } = await params
     const body = await req.json()
-    const { filename } = body // The key/filename used in S3
-    const userId = id // This is the Supabase Auth ID sent from Express
+    const { filename } = body
+    const userId = id
 
-    // Resolve Supabase Auth ID to internal User ID
-    const { data: user } = await supabaseAdmin
-      .from("User")
-      .select("id")
-      .eq("supabaseId", userId)
-      .single()
+    const db = getDb()
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    const { data: subscription } = await supabaseAdmin
-      .from("Subscription")
-      .select("plan")
-      .eq("userId", user.id)
-      .single()
-
-    const plan = (subscription?.plan || "FREE") as keyof typeof PLAN_LIMITS
-    const limit = PLAN_LIMITS[plan]?.videos || 25
-
-    // 1. Idempotency Check (Prevent duplicate processing for same file)
-    const { data: existingVideo } = await supabaseAdmin
-      .from("Video")
-      .select("id, processing")
-      .eq("source", filename)
-      .eq("userId", user.id)
-      .maybeSingle();
+    const existingVideo = db.prepare(
+      'SELECT id, processing FROM "Video" WHERE source LIKE ? AND userId = ?'
+    ).get(`%${filename}%`, userId) as any;
 
     if (existingVideo) {
-      console.log("♻️ Idempotency: Video already exists/processing, skipping creation.", existingVideo.id);
-      return NextResponse.json({ 
-        status: 200, 
-        plan,
+      return NextResponse.json({
+        status: 200,
+        plan: "ENTERPRISE",
         videoId: existingVideo.id,
-        isExisting: true
+        isExisting: true,
       });
     }
 
-    const { data: workspace } = await supabaseAdmin
-      .from("Workspace")
-      .select("id")
-      .eq("userId", user.id)
-      .eq("type", "PERSONAL")
-      .single()
+    const workspace = db.prepare(
+      'SELECT id FROM "Workspace" WHERE userId = ? AND type = ?'
+    ).get(userId, 'PERSONAL') as any;
 
-    const personalWorkspaceId = workspace?.id
+    const personalWorkspaceId = workspace?.id;
 
     if (!personalWorkspaceId) {
       return NextResponse.json({ error: "Personal workspace not found" }, { status: 404 })
     }
 
-    // Create a placeholder video record
-    // Added planAtCreation for snapshotting (analytics + retroactive safety)
-    const { data: video, error } = await supabaseAdmin
-      .from("Video")
-      .insert({
-        source: filename,
-        userId: user.id,
-        workspaceId: personalWorkspaceId,
-        processing: true,
-        planAtCreation: plan, // SNAPSHOT: Store user's plan at time of creation
-      })
-      .select()
-      .single()
+    const videoId = uuidv4();
+    const now = new Date().toISOString();
 
-    if (video && !error) {
-      // Race Condition Protection: Re-check count AFTER insert
-      if (limit !== Infinity) {
-        const { count } = await supabaseAdmin
-          .from("Video")
-          .select("*", { count: "exact", head: true })
-          .eq("userId", user.id);
+    db.prepare(
+      `INSERT INTO "Video" (id, source, userId, workspaceId, processing, planAtCreation, createdAt) VALUES (?, ?, ?, ?, 1, 'ENTERPRISE', ?)`
+    ).run(videoId, filename, userId, personalWorkspaceId, now);
 
-        if (count !== null && count > limit) {
-          // Exceeded! Cleanup the record just created
-          await supabaseAdmin.from("Video").delete().eq("id", video.id);
-          return NextResponse.json(
-            { message: "Video limit exceeded during parallel upload. Upgrade required." },
-            { status: 403 }
-          );
-        }
-
-        // 2. Soft Limits (UX Warning)
-        if (count !== null && count >= limit - 2) {
-           console.warn(`📢 Soft Limit reached for ${String(plan)}: ${count}/${limit}`);
-           // Send a hint to the client (optional, but good for logging)
-        }
-      }
-
-      // 3. AI Threshold Enforcement (Future-Proof + Cost Control)
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const { count: aiUsageToday } = await supabaseAdmin
-        .from("Video")
-        .select("*", { count: "exact", head: true })
-        .eq("userId", user.id)
-        .gte("createdAt", todayStart.toISOString())
-        .not("summary", "is", null);
-
-      const threshold = PLAN_LIMITS[plan]?.dailyAIThreshold ?? 0;
-      const aiBlocked = aiUsageToday !== null && aiUsageToday >= threshold;
-
-      return NextResponse.json({ 
-        status: 200, 
-        plan,
-        dailyAIThreshold: threshold,
-        aiUsageToday: aiUsageToday || 0,
-        aiBlocked
-      })
-    }
+    return NextResponse.json({
+      status: 200,
+      plan: "ENTERPRISE",
+      dailyAIThreshold: 999999,
+      aiUsageToday: 0,
+      aiBlocked: false,
+    })
   } catch (error) {
     console.error("Error in processing video:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

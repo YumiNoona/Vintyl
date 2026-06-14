@@ -4,7 +4,6 @@ import { Users, PlusCircle, ShieldCheck } from "lucide-react";
 import Modal from "@/components/global/modal";
 import Search from "@/components/global/search";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { PLAN_LIMITS } from "@/constants";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 
@@ -20,16 +19,7 @@ export default async function MembersPage({
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: userPlanData } = await supabase
-    .from("User")
-    .select("Subscription(plan)")
-    .eq("supabaseId", user.id)
-    .single();
-  
-  const plan = (userPlanData?.Subscription as any)?.plan || "FREE";
-  const limit = (PLAN_LIMITS as any)[plan]?.members || 1;
-  const currentMembers = (membersData.data?.members?.length || 0) + 1; // +1 for owner
-  const canInvite = currentMembers < limit;
+  const canInvite = true;
 
   return (
     <div className="flex flex-col gap-10">

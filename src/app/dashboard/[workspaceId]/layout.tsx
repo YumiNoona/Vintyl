@@ -58,9 +58,8 @@ export default async function WorkspaceLayout({
     return redirect("/auth");
   }
 
-  // Fetch full workspace data using system client to bypass evaluation lag if needed, 
-  // though verifyAccessToWorkspace already confirmed membership.
-  const systemSupabase = await (await import("@/lib/supabase/server")).createSystemClient();
+  const { createSystemClient } = await import("@/lib/supabase/server");
+  const systemSupabase = await createSystemClient();
   const { data: workspace } = await systemSupabase
     .from("Workspace")
     .select("*")

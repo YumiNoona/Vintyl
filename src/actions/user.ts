@@ -1,8 +1,9 @@
 "use server";
 
-import { createClient, createSystemClient } from "@/lib/supabase/server";
-import { getSubscription } from "./payment";
+import { createClient } from "@/lib/supabase/server";
 import { cache } from "react";
+import { getDb } from "@/lib/db";
+import { v4 as uuidv4 } from "uuid";
 
 export const onAuthenticatedUser = cache(async () => {
   try {
@@ -10,154 +11,46 @@ export const onAuthenticatedUser = cache(async () => {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      console.log("⚠️ onAuthenticatedUser: No user session found");
       return { status: 403 };
     }
 
-    console.log("👤 onAuthenticatedUser: Session found for", user.email);
+    const db = getDb();
 
-    // Use SYSTEM CLIENT to bypass RLS for user lookup/sync
-    const systemSupabase = await createSystemClient();
-
-    // Fetch from our public.User table
-    const { data: userExists, error: dbError } = await systemSupabase
-      .from("User")
-      .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
-      .eq("supabaseId", user.id)
-      .single();
-
-    if (dbError && dbError.code !== 'PGRST116') { // PGRST116 is "no rows found"
-      console.error("❌ onAuthenticatedUser: DB Lookup Error:", dbError.message);
-    }
+    const userExists = db.prepare(`
+      SELECT u.*, w.id as ws_id, w.name as ws_name, w.type as ws_type,
+             s.plan as sub_plan
+      FROM "User" u
+      LEFT JOIN "Workspace" w ON w.userId = u.id
+      LEFT JOIN "Subscription" s ON s.userId = u.id
+      WHERE u.id = ?
+    `).get(user.id) as any;
 
     if (userExists) {
-      console.log("✅ onAuthenticatedUser: User record found in DB");
-      if (!userExists.subscription) {
-        console.log("🔄 Triggering Stripe sync fallback via getSubscription()...");
-        await getSubscription();
+      const workspaces: any[] = [];
+      if (userExists.ws_id) {
+        workspaces.push({ id: userExists.ws_id, name: userExists.ws_name, type: userExists.ws_type });
       }
 
-      // Repair: ensure Member rows exist for all workspaces.
-      // The DB trigger may have failed silently for existing accounts,
-      // causing verifyAccessToWorkspace to see 0 members and block login.
-      const workspaces: any[] = Array.isArray(userExists.workspace) ? userExists.workspace : [];
-      if (workspaces.length === 0) {
-        console.log("🔧 onAuthenticatedUser: No workspace found, creating one...");
-        const { data: newWS } = await systemSupabase
-          .from("Workspace")
-          .insert({ userId: userExists.id, name: "Personal Workspace", type: "PERSONAL" })
-          .select()
-          .single();
-        if (newWS) {
-          workspaces.push(newWS);
-          await systemSupabase.from("Member").insert(
-            { userId: userExists.id, workspaceId: newWS.id, supabaseId: user.id }
-          );
-          console.log("✅ Workspace + Member created");
-        }
-      } else {
-        // Ensure a Member row exists for each workspace this user owns
-        for (const ws of workspaces) {
-          const { data: existingMember } = await systemSupabase
-            .from("Member")
-            .select("id")
-            .eq("workspaceId", ws.id)
-            .eq("supabaseId", user.id)
-            .maybeSingle();
-          if (!existingMember) {
-            console.log("🔧 Repairing missing Member row for workspace", ws.id);
-            const { error: memberErr } = await systemSupabase.from("Member").insert(
-              { userId: userExists.id, workspaceId: ws.id, supabaseId: user.id }
-            );
-            if (memberErr) {
-              console.error("❌ Failed to repair Member row:", memberErr.message);
-            } else {
-              console.log("✅ Member row repaired for workspace", ws.id);
-            }
-          }
-        }
-      }
-
-      return { status: 200, user: { ...userExists, workspace: workspaces } };
+      return {
+        status: 200,
+        user: {
+          id: userExists.id,
+          supabaseId: userExists.id,
+          email: userExists.email,
+          firstName: userExists.firstName,
+          lastName: userExists.lastName,
+          image: userExists.image,
+          workspace: workspaces,
+          subscription: userExists.sub_plan ? { plan: userExists.sub_plan } : null,
+        },
+      };
     }
 
-    console.log("❓ onAuthenticatedUser: No record found. Attempting manual sync with payload:", {
-      supabaseId: user.id,
-      email: user.email,
-      firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || "",
-      lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || ""
-    });
-
-    const { data: newUser, error: createError } = await systemSupabase
-      .from("User")
-      .insert({
-        supabaseId: user.id,
-        email: user.email,
-        firstName: user.user_metadata?.first_name || user.user_metadata?.firstName || "",
-        lastName: user.user_metadata?.last_name || user.user_metadata?.lastName || "",
-        image: user.user_metadata?.avatar_url || ""
-      })
-      .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
-      .single();
-
-    if (newUser && !createError) {
-      console.log("✅ onAuthenticatedUser: Manually created user record.");
-
-      // Ensure Subscription exists (Idempotent)
-      await systemSupabase.from("Subscription").upsert({ userId: newUser.id, plan: 'FREE' }, { onConflict: 'userId' });
-
-      // Ensure Workspace exists (Idempotent-ish via select fallback)
-      let wsId: string | undefined;
-      const { data: existingWS } = await systemSupabase.from("Workspace").select("id").eq("userId", newUser.id).limit(1).single();
-
-      if (existingWS) {
-        wsId = existingWS.id;
-      } else {
-        const { data: newWS } = await systemSupabase.from("Workspace").insert({ userId: newUser.id, name: 'Personal Workspace', type: 'PERSONAL' }).select().single();
-        wsId = newWS?.id;
-      }
-
-      if (wsId) {
-        // Ensure Membership exists (Idempotent)
-        await systemSupabase.from("Member").upsert({ userId: newUser.id, workspaceId: wsId, supabaseId: user.id }, { onConflict: 'workspaceId, supabaseId' });
-
-        // Return enriched user
-        const { data: enrichedUser, error: enrichError } = await systemSupabase
-          .from("User")
-          .select("*, workspace:Workspace(*), subscription:Subscription(plan)")
-          .eq("id", newUser.id)
-          .single();
-
-        if (enrichedUser && !enrichError) {
-          console.log("✅ onAuthenticatedUser: Successfully enriched fallback record with workspace.");
-          return { status: 201, user: enrichedUser };
-        }
-
-        // Final fallback if enrichment failed
-        return {
-          status: 201,
-          user: {
-            ...newUser,
-            workspace: wsId ? [{ id: wsId, name: 'Personal Workspace', type: 'PERSONAL' }] : [],
-            subscription: { plan: 'FREE' }
-          }
-        };
-      }
-
-      return { status: 201, user: newUser };
-    }
-
-    if (createError) {
-      console.error("❌ onAuthenticatedUser: Sync failed:", createError.message, createError.code);
-      return { status: 500, error: createError.message };
-    }
-
-    return { status: 404, message: "Manual sync produced no user and no error" };
+    return { status: 404, message: "User not found" };
   } catch (error: any) {
     if (error?.digest === 'DYNAMIC_SERVER_USAGE' || error?.message?.includes('dynamic-server-error')) {
       throw error;
     }
-    console.error("❌ AUTH ERROR in onAuthenticatedUser:", error);
     return { status: 500 };
   }
 });
@@ -168,20 +61,18 @@ export const getNotifications = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: [] };
 
-    // FIX #7: Select inviteId so the activity page can pass it to InviteAcceptButton
-    const { data: notifications } = await supabase
-      .from("User")
-      .select("Notification(id, content, createdAt, inviteId)")
-      .eq("supabaseId", user.id)
-      .single();
+    const db = getDb();
+    const notifications = db.prepare(
+      'SELECT id, content, createdAt, inviteId FROM "Notification" WHERE userId = ? ORDER BY createdAt DESC'
+    ).all(user.id) as any[];
 
-    if (notifications && (notifications as any).Notification.length > 0) {
+    if (notifications.length > 0) {
       return {
         status: 200,
         data: {
-          notifications: (notifications as any).Notification,
-          _count: { notifications: (notifications as any).Notification.length }
-        }
+          notifications,
+          _count: { notifications: notifications.length },
+        },
       };
     }
 
@@ -197,16 +88,23 @@ export const searchUsers = async (query: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404, data: undefined };
 
-    const { data: users } = await supabase
-      .from("User")
-      .select("id, Subscription(plan), firstName, lastName, image, email")
-      .or(`firstName.ilike.%${query}%,lastName.ilike.%${query}%,email.ilike.%${query}%`)
-      .not("supabaseId", "eq", user.id);
+    const db = getDb();
+    const users = db.prepare(`
+      SELECT u.id, u.firstName, u.lastName, u.image, u.email, s.plan as sub_plan
+      FROM "User" u
+      LEFT JOIN "Subscription" s ON s.userId = u.id
+      WHERE (LOWER(u.firstName) LIKE LOWER(?) OR LOWER(u.lastName) LIKE LOWER(?) OR LOWER(u.email) LIKE LOWER(?))
+      AND u.id != ?
+    `).all(`%${query}%`, `%${query}%`, `%${query}%`, user.id) as any[];
 
-    if (users && users.length > 0) {
+    if (users.length > 0) {
       const flattenedUsers = users.map((u: any) => ({
-        ...u,
-        subscription: u.Subscription?.[0] || null,
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        image: u.image,
+        email: u.email,
+        subscription: { plan: u.sub_plan || 'FREE' },
       }));
       return { status: 200, data: flattenedUsers };
     }
@@ -223,11 +121,10 @@ export const getUserProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    const { data: userProfile } = await supabase
-      .from("User")
-      .select("id, image, firstName, lastName, email")
-      .eq("supabaseId", user.id)
-      .single();
+    const db = getDb();
+    const userProfile = db.prepare(
+      'SELECT id, image, firstName, lastName, email FROM "User" WHERE id = ?'
+    ).get(user.id) as any;
 
     if (userProfile) return { status: 200, data: userProfile };
     return { status: 404 };
@@ -242,26 +139,17 @@ export const updateUserProfile = async (firstName: string, lastName: string, ima
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { status: 404 };
 
-    // Update public.User table (Wait for this before returning)
-    const { error } = await supabase
-      .from("User")
-      .update({ firstName, lastName, image })
-      .eq("supabaseId", user.id);
+    const db = getDb();
+    const updates: any = { firstName, lastName };
+    if (image) updates.image = image;
 
-    if (error) {
-      console.error("❌ updateUserProfile DB Error:", error.message);
-      return { status: 400, data: "Could not update profile table" };
-    }
-
-    // Update Auth Metadata as well for session consistency
-    const updateData: any = { first_name: firstName, last_name: lastName };
-    if (image) updateData.avatar_url = image;
-
-    await supabase.auth.updateUser({ data: updateData });
+    const setClauses = Object.keys(updates).map(k => `"${k}" = ?`).join(', ');
+    const vals = Object.values(updates);
+    vals.push(user.id);
+    db.prepare(`UPDATE "User" SET ${setClauses} WHERE id = ?`).run(...vals);
 
     return { status: 200, data: "Profile updated successfully" };
   } catch (error) {
-    console.error("❌ updateUserProfile Catch:", error);
     return { status: 500, data: "Internal error" };
   }
 };

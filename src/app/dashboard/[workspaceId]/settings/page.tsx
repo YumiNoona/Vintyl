@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Monitor, PlusCircle, Settings as SettingsIcon, Users, User, Mail, Lock, Camera, Loader2, Copy } from "lucide-react";
+import { Monitor, PlusCircle, Settings as SettingsIcon, Users, User, Mail, Camera, Loader2, Copy } from "lucide-react";
 import { useParams } from "next/navigation";
 import Modal from "@/components/global/modal";
 import Search from "@/components/global/search";
-import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ import { updateUserProfile } from "@/actions/user";
 export default function SettingsPage() {
   const params = useParams();
   const workspaceId = params.workspaceId as string;
-  const supabase = createClient();
 
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
@@ -24,18 +22,18 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function getUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUser(user);
-        const fullName = [user.user_metadata?.first_name || "", user.user_metadata?.last_name || ""]
-          .join(" ")
-          .trim();
-        setName(fullName || user.user_metadata?.full_name || "");
-        setEmail(user.email || "");
-      }
+      try {
+        const res = await fetch("/api/debug");
+        const data = await res.json();
+        if (data.user) {
+          setUser(data.user);
+          setName(data.user.email?.split('@')[0] || "");
+          setEmail(data.user.email || "");
+        }
+      } catch {}
     }
     getUser();
-  }, [supabase]);
+  }, []);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,23 +50,12 @@ export default function SettingsPage() {
 
   const handleUpdateEmail = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ email });
-    if (error) toast.error(error.message);
-    else toast.success("Confirmation email sent to " + email);
-    setLoading(false);
+    toast.info("Email change is handled locally. Contact admin for changes.");
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) toast.error(error.message);
-    else {
-      toast.success("Password updated!");
-      setNewPassword("");
-    }
-    setLoading(false);
+    toast.info("Password management is handled locally.");
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,28 +63,21 @@ export default function SettingsPage() {
     if (!file) return;
 
     setLoading(true);
-    const fileName = `${user.id}-${Date.now()}`;
-    const { data, error } = await supabase.storage
-      .from("vintyl-videos") // Reusing the same bucket for simplicity or create a new one
-      .upload(`avatars/${fileName}`, file);
-
-    if (error) {
-      toast.error(error.message);
-      setLoading(false);
-      return;
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/avatar", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.url) {
+        const cleanName = name.trim();
+        const [firstName, ...rest] = cleanName.split(/\s+/);
+        const lastName = rest.join(" ");
+        await updateUserProfile(firstName || "", lastName || "", data.url);
+        toast.success("Avatar updated!");
+      }
+    } catch {
+      toast.error("Failed to upload avatar");
     }
-
-    const { data: { publicUrl } } = supabase.storage
-      .from("vintyl-videos")
-      .getPublicUrl(`avatars/${fileName}`);
-
-    const cleanName = name.trim();
-    const [firstName, ...rest] = cleanName.split(/\s+/);
-    const lastName = rest.join(" ");
-    const result = await updateUserProfile(firstName || "", lastName || "", publicUrl);
-
-    if (result.status !== 200) toast.error(result.data);
-    else toast.success("Avatar updated!");
     setLoading(false);
   };
 
@@ -114,9 +94,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Left Column: Profile */}
         <div className="space-y-8">
-          {/* Profile Form */}
           <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
             <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <User size={16} className="text-muted-foreground" />
@@ -126,8 +104,8 @@ export default function SettingsPage() {
             <div className="flex items-center gap-8 mb-10">
                <div className="relative group">
                   <div className="w-24 h-24 rounded-3xl overflow-hidden bg-white/5 border border-white/10 group-hover:opacity-50 transition-all shadow-inner">
-                     {user?.user_metadata?.avatar_url ? (
-                        <img src={user.user_metadata.avatar_url} alt="avatar" className="w-full h-full object-cover" />
+                     {user?.image ? (
+                        <img src={user.image} alt="avatar" className="w-full h-full object-cover" />
                      ) : (
                         <div className="w-full h-full flex items-center justify-center bg-foreground text-background font-semibold text-3xl">
                            {name?.charAt(0)}
@@ -156,7 +134,6 @@ export default function SettingsPage() {
             </form>
           </section>
 
-          {/* Email Form */}
           <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
             <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <Mail size={16} className="text-muted-foreground" />
@@ -164,37 +141,18 @@ export default function SettingsPage() {
             </h2>
             <form onSubmit={handleUpdateEmail} className="space-y-6">
                <div className="space-y-2">
-                  <label className="text-eyebrow ml-1">Update Email</label>
-                  <Input value={email} onChange={(e) => setEmail(e.target.value)} className="bg-muted/60 h-12 border-border rounded-2xl focus:border-foreground/20 transition-all font-medium" />
+                  <label className="text-eyebrow ml-1">Current Email</label>
+                  <Input value={email} disabled className="bg-muted/60 h-12 border-border rounded-2xl font-medium" />
                </div>
-               <Button type="submit" variant="secondary" disabled={loading} className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-semibold h-12 rounded-2xl border border-border text-sm">
-                 Request Email Change
+               <Button type="submit" variant="secondary" disabled className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-semibold h-12 rounded-2xl border border-border text-sm">
+                 Email is managed locally
                </Button>
             </form>
           </section>
         </div>
 
-        {/* Right Column: Security & Workspace */}
         <div className="space-y-8">
-           {/* Password Form */}
            <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
-            <h2 className="text-eyebrow mb-8 flex items-center gap-3">
-              <Lock size={16} className="text-muted-foreground" />
-              Security
-            </h2>
-            <form onSubmit={handleChangePassword} className="space-y-6">
-               <div className="space-y-2">
-                  <label className="text-eyebrow ml-1">New Password</label>
-                  <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="bg-muted/60 h-12 border-border rounded-2xl focus:border-foreground/20 transition-all font-medium" placeholder="••••••••" />
-               </div>
-               <Button type="submit" variant="secondary" disabled={loading || !newPassword} className="w-full bg-secondary hover:bg-secondary/80 text-foreground font-semibold h-12 rounded-2xl border border-border text-sm">
-                 Update Password
-               </Button>
-            </form>
-          </section>
-
-          {/* Desktop App Linking */}
-          <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
             <h2 className="text-eyebrow mb-8 flex items-center gap-3">
               <Monitor size={16} className="text-muted-foreground" />
               Desktop App
@@ -225,7 +183,6 @@ export default function SettingsPage() {
             </div>
           </section>
 
-          {/* Members (Moved here) */}
           <section className="bg-card border border-border rounded-3xl p-8 backdrop-blur-xl shadow-xl">
             <h2 className="text-eyebrow mb-6 flex items-center gap-3">
               <Users size={16} className="text-muted-foreground" />

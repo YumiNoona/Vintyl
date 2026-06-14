@@ -1,46 +1,49 @@
-import { createClient } from "@supabase/supabase-js";
+import { uploadVideo as localUpload, getVideoUrl as localGetUrl, deleteVideo as localDelete } from './storage-local';
 
-/**
- * Lazy-initialize the Supabase client for storage operations
- */
 export const getStorageClient = () => {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error("Supabase Storage credentials missing in environment variables");
-  }
-
-  return createClient(url, key);
+  return {
+    storage: {
+      from: (_bucket: string) => ({
+        upload: async (key: string, body: Buffer | File, opts?: { contentType?: string; upsert?: boolean }) => {
+          try {
+            await localUpload(key, body, opts?.contentType || 'application/octet-stream');
+            return { data: { path: key }, error: null };
+          } catch (err: any) {
+            return { data: null, error: err };
+          }
+        },
+        getPublicUrl: (key: string) => {
+          return { data: { publicUrl: localGetUrl(key) } };
+        },
+        remove: async (keys: string[]) => {
+          try {
+            keys.forEach(k => localDelete(k));
+            return { data: null, error: null };
+          } catch (err: any) {
+            return { data: null, error: err };
+          }
+        },
+        createSignedUploadUrl: async (key: string) => {
+          return { data: { signedUrl: `/api/video/${encodeURIComponent(key)}` }, error: null };
+        },
+      }),
+    },
+    auth: {
+      getUser: async () => ({ data: { user: null }, error: null }),
+    },
+    from: () => ({
+      select: () => ({ data: null, error: null }),
+      insert: () => ({ data: null, error: null }),
+      update: () => ({ data: null, error: null }),
+      delete: () => ({ data: null, error: null }),
+    }),
+  };
 };
 
-const BUCKET = "vintyl-videos";
-
-/**
- * Generate a public URL for a stored video
- */
 export async function getVideoUrl(key: string) {
-  const supabase = getStorageClient();
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(key);
-  return data.publicUrl;
+  return localGetUrl(key);
 }
 
-/**
- * Upload a video buffer/file to Supabase Storage
- */
 export async function uploadVideo(key: string, body: Buffer | File, contentType: string) {
-  const supabase = getStorageClient();
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .upload(key, body, {
-      contentType,
-      upsert: true,
-    });
-
-  if (error) {
-    console.error("Supabase Upload Error:", error);
-    throw error;
-  }
-
-  return data;
+  return localUpload(key, body, contentType);
 }

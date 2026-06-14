@@ -1,55 +1,20 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { verifyToken } from '@/lib/db/auth'
+
+const COOKIE_NAME = 'vintyl-auth'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+  let supabaseResponse = NextResponse.next({ request })
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value
-        },
-        set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          supabaseResponse.cookies.set({
-            name,
-            value,
-            ...options,
-          })
-        },
-        remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          supabaseResponse.cookies.set({
-            name,
-            value: '',
-            ...options,
-          })
-        },
-      },
+  const token = request.cookies.get(COOKIE_NAME)?.value
+  const payload = token ? verifyToken(token) : null
+
+  if (!payload) {
+    // Token is missing or invalid — clear it if present
+    if (request.cookies.has(COOKIE_NAME)) {
+      supabaseResponse.cookies.set(COOKIE_NAME, '', { maxAge: 0, path: '/' })
     }
-  )
-
-  // refreshing the auth token
-  await supabase.auth.getUser()
+  }
 
   return supabaseResponse
 }

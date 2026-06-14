@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { getSupabaseAdmin } from "@/lib/supabase/admin"
-import { getStorageClient } from "@/lib/storage"
+import { getDb } from "@/lib/db"
+import { v4 as uuidv4 } from "uuid"
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,20 +15,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const supabaseAdmin = getSupabaseAdmin()
-    const supabaseStorage = getStorageClient()
-
-    // Resolve Supabase Auth ID to internal User ID
-    const { data: internalUser } = await supabaseAdmin
-      .from("User")
-      .select("id")
-      .eq("supabaseId", authUser.id)
-      .single()
-
-    if (!internalUser) {
-      return NextResponse.json({ error: "User not found in database" }, { status: 404 })
-    }
-
     if (!fileName || !contentType || !workspaceId) {
       return NextResponse.json(
         { error: "Missing fileName, contentType, or workspaceId" },
@@ -36,39 +22,21 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Generate unique Key
-    const videoId = crypto.randomUUID()
+    const videoId = uuidv4()
     const ext = fileName.split(".").pop() || "webm"
     const key = `${videoId}.${ext}`
-    const bucketName = "vintyl-videos"
 
-    // Create a signed upload URL for Supabase
-    const { data: uploadData, error: uploadError } = await supabaseStorage.storage
-      .from(bucketName)
-      .createSignedUploadUrl(key)
+    const sourcePath = `/api/video/${key}`
 
-    if (uploadError) {
-      console.error("Supabase signed URL error:", uploadError)
-      return NextResponse.json({ error: "Failed to generate upload URL" }, { status: 500 })
-    }
+    const db = getDb()
+    const now = new Date().toISOString()
 
-    // Get the public URL for the source path
-    const { data: publicUrlData } = supabaseStorage.storage.from(bucketName).getPublicUrl(key)
-    const sourcePath = publicUrlData.publicUrl
-
-    // Save video record in Supabase
-    await supabaseAdmin.from("Video").insert({
-      id: videoId,
-      title: fileName,
-      source: sourcePath,
-      workspaceId,
-      folderId: folderId || null,
-      userId: internalUser.id,
-      processing: true,
-    })
+    db.prepare(
+      `INSERT INTO "Video" (id, title, source, workspaceId, folderId, userId, processing, createdAt) VALUES (?, ?, ?, ?, ?, ?, 1, ?)`
+    ).run(videoId, fileName, sourcePath, workspaceId, folderId || null, authUser.id, now)
 
     return NextResponse.json({
-      uploadUrl: uploadData.signedUrl,
+      uploadUrl: `/api/video/${key}`,
       key,
       videoId,
     }, {

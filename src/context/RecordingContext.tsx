@@ -78,51 +78,32 @@ export function RecordingProvider({ children, plan = "FREE" }: { children: React
       const videoBlob = await response.blob();
       const randomSuffix = Math.random().toString(36).substring(7);
       const fileName = `vintyl-${userId}-${Date.now()}-${randomSuffix}.webm`;
-      
-      console.log("🚀 Starting upload to /api/upload...");
-      const res = await fetch("/api/upload", {
+
+      const formData = new FormData();
+      formData.append("file", videoBlob, fileName);
+      formData.append("fileName", fileName);
+      formData.append("workspaceId", workspaceId);
+      formData.append("folderId", folderId || "");
+
+      const res = await fetch("/api/upload/direct", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileName,
-          contentType: videoBlob.type,
-          workspaceId,
-          userId,
-          folderId,
-        })
+        body: formData,
       });
 
       if (!res.ok) {
-        console.error(`❌ Upload API failed: ${res.status} ${res.statusText}`);
         const errorData = await res.json().catch(() => ({}));
-        console.error("Error data:", errorData);
-        throw new Error(errorData.error || "Upload API failed");
+        throw new Error(errorData.error || "Upload failed");
       }
 
       const data = await res.json();
-      console.log("✅ Upload URL received:", data.uploadUrl ? "Yes" : "No");
-      
-      if (data.uploadUrl) {
-        console.log("📤 Putting blob to S3...");
-        const putRes = await fetch(data.uploadUrl, {
-          method: "PUT",
-          headers: { "Content-Type": videoBlob.type },
-          body: videoBlob,
-        });
 
-        if (!putRes.ok) {
-          console.error(`❌ S3 PUT failed: ${putRes.status} ${putRes.statusText}`);
-          throw new Error("Failed to upload binary to storage");
-        }
-
-        if (data.videoId) {
-            setVideoId(data.videoId);
-            transcribeVideo(data.videoId).catch(console.error);
-            toast.success("Video uploaded successfully!");
-        }
+      if (data.videoId) {
+        setVideoId(data.videoId);
+        transcribeVideo(data.videoId).catch(console.error);
+        toast.success("Video uploaded successfully!");
       }
     } catch (error: any) {
-      console.error("🚨 UPLOAD CRITICAL ERROR:", error);
+      console.error("🚨 UPLOAD ERROR:", error);
       toast.error(`Export failed: ${error.message || "Network Error"}`);
     } finally {
       setIsUploading(false);
