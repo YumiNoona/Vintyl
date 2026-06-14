@@ -12,10 +12,8 @@ Record your screen, enrich it with AI, and share with your team — all in one s
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat-square&logo=typescript)
 ![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react)
+![SQLite](https://img.shields.io/badge/SQLite-Local-003B57?style=flat-square&logo=sqlite)
 ![Electron](https://img.shields.io/badge/Electron-Desktop-47848F?style=flat-square&logo=electron)
-![Gemini](https://img.shields.io/badge/Gemini-1.5_Flash-4285F4?style=flat-square&logo=google)
-![Supabase](https://img.shields.io/badge/Supabase-Backend-3ECF8E?style=flat-square&logo=supabase)
-![Stripe](https://img.shields.io/badge/Stripe-Payments-635BFF?style=flat-square&logo=stripe)
 ![Tailwind](https://img.shields.io/badge/TailwindCSS-4-06B6D4?style=flat-square&logo=tailwindcss)
 
 </div>
@@ -24,16 +22,16 @@ Record your screen, enrich it with AI, and share with your team — all in one s
 
 ## 📖 Summary
 
-Vintyl is a full-stack, production-grade video sharing platform designed for async team communication. It combines three independently deployable services — a **Next.js 16 web dashboard**, an **Express + Socket.IO processing server**, and an **Electron desktop recorder** — into a unified experience backed by **Supabase** and a **dual AI pipeline**.
+Vintyl is a fully local, AI-powered video sharing platform for async team communication. It combines three services — a **Next.js 16 web dashboard**, an **Express + Socket.IO processing server**, and an **Electron desktop recorder** — into a unified experience backed by **SQLite** and an **optional dual AI pipeline**.
 
 **How it works:**
 1. A user launches the Electron desktop app and authenticates via deep link (`vintyl://auth`).
 2. The app captures the screen and streams video chunks over Socket.IO to the Express server with backpressure handling.
-3. The Express server writes chunks to disk (memory-safe), uploads the final file to Supabase Storage, and kicks off AI enrichment in the background.
-4. **Gemini 1.5 Flash** analyzes the full video (base64) to produce a transcript, title, and summary. If Gemini times out (15s), it falls back to **Groq Whisper** (audio transcription via ffmpeg extraction) + **Llama 3.3 70B** (summarization).
-5. The enriched metadata is saved to Postgres and the video appears in the user's dashboard — organized by workspaces and folders, with view tracking, comments, sharing controls, and analytics.
+3. The Express server writes chunks to disk and saves the final file locally. AI enrichment runs in the background if API keys are provided.
+4. **Gemini 1.5 Flash** (primary) analyzes the video to produce a transcript, title, and summary. Falls back to **Groq Whisper** + **Llama 3.3 70B** if needed.
+5. The enriched metadata is saved to SQLite and the video appears in the user's dashboard — organized by workspaces and folders, with view tracking, comments, and sharing controls.
 
-**Multi-tenant by design** — workspaces are isolated via Row Level Security with `EXISTS`-based Member checks and composite indexes. Subscription tiers (FREE → ENTERPRISE) gate features like AI processing, video limits, member counts, and recording resolution.
+**100% local by default** — no cloud services required. All features are unlocked (ENTERPRIERISE tier). AI is optional and uses your own API keys.
 
 ---
 
@@ -60,15 +58,15 @@ Vintyl is a full-stack, production-grade video sharing platform designed for asy
 ### 🔐 Security & Auth
 | Feature | Description |
 |---|---|
-| **Unified Identity** | Supabase Auth with shared JWT across web and desktop |
+| **Local Auth** | JWT-based sessions with bcrypt password hashing |
 | **Desktop Deep Linking** | `vintyl://auth?token=X&userId=Y` protocol with Keytar secure storage |
-| **Row Level Security** | 9 tables with `EXISTS`-based policies; service-role bypass for cross-member queries |
+| **Cookie Sessions** | httpOnly JWT cookies for web auth |
 | **Rate Limiting** | Request throttling on sensitive endpoints |
 
-### 💳 Payments
+### 💳 Pricing
 | Feature | Description |
 |---|---|
-| **Fully Free** | No billing. All features unlocked. Stripe completely removed. |
+| **Fully Free** | No billing. All features unlocked. No subscriptions. |
 
 ---
 
@@ -192,9 +190,8 @@ Vintyl/
 │   │   ├── api/                        #   API Route Handlers (10 routes)
 │   │   │   ├── ai/route.ts            #     AI processing endpoint
 │   │   │   ├── health/route.ts        #     Health check
-│   │   │   ├── payment/webhook/       #     Stripe webhook handler
 │   │   │   ├── recording/[id]/        #     processing, transcribe, complete
-│   │   │   └── upload/                #     Direct upload + mock endpoint
+│   │   │   └── upload/                #     Direct upload endpoint
 │   │   │
 │   │   ├── auth/                       #   Authentication Pages
 │   │   │   ├── layout.tsx              #     Auth layout
@@ -255,15 +252,16 @@ Vintyl/
 │   │   └── use-mobile.ts             #   Responsive breakpoint detection
 │   │
 │   ├── lib/                            # Utilities & Client Setup
+│   │   ├── db/
+│   │   │   ├── index.ts              #   SQLite connection singleton
+│   │   │   ├── schema.ts             #   Full DDL for all tables
+│   │   │   ├── client.ts             #   Supabase-compatible query wrapper
+│   │   │   └── auth.ts               #   JWT + bcrypt auth functions
 │   │   ├── supabase/
-│   │   │   ├── client.ts             #   Browser Supabase client (anon key)
-│   │   │   ├── server.ts             #   Server client (anon) + system client (service role)
-│   │   │   ├── admin.ts              #   Admin client for API routes (service role)
-│   │   │   └── middleware.ts          #   Auth session refresh middleware
-│   │   ├── stripe.ts                  #   Stripe instance
-│   │   ├── storage.ts                 #   Storage helper utilities
+│   │   │   ├── server.ts             #   Local DB client + auth (compat layer)
+│   │   │   └── middleware.ts          #   JWT cookie verification middleware
+│   │   ├── storage-local.ts           #   Local filesystem storage
 │   │   ├── rate-limit.ts              #   Request rate limiting
-│   │   ├── voiceflow.ts              #   Voiceflow chatbot config
 │   │   └── utils.ts                   #   General utilities (cn, etc.)
 │   │
 │   ├── react-query/
@@ -274,9 +272,6 @@ Vintyl/
 │   │
 │   ├── constants/
 │   │   └── index.ts                   # App-wide constants (routes, config)
-│   │
-│   └── shared/
-│       └── planLimits.js              # CJS re-export for TS imports
 │
 ├── express-server/                     # ─── Express Processing Server ───
 │   ├── index.js                       #   Socket.IO server, AI pipeline, upload logic (344 lines)
@@ -298,11 +293,9 @@ Vintyl/
 │   └── planLimits.js                  #   Plan tier limits (videos, members, AI, resolution, daily thresholds)
 │
 ├── public/                             # ─── Static Assets ───
-│   ├── vintyl-logo.svg               #   Vector logo
-│   ├── vintyl-logo.png               #   Raster logo
-│   └── favicon.png                    #   Browser favicon
+│   ├── logo.png                       #   App logo
+│   └── favicon.ico                    #   Browser favicon
 │
-├── FullDatabaseSchema.sql             # Complete Supabase SQL initialization
 ├── package.json                       # Root dependencies & scripts
 ├── next.config.ts                     # Next.js configuration
 ├── tsconfig.json                      # TypeScript configuration
@@ -478,6 +471,5 @@ This project is licensed under the **MIT License** — see the [LICENSE](LICENSE
 ---
 
 <p align="center">
-  <sub>Built with ❤ and obsessive by veil</sub><br/>
-  <a href="https://vintyl.venusapp.in"><strong>vanity.venusapp.in</strong></a>
+  Built with 💙 Made by Veil
 </p>

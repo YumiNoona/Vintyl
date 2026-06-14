@@ -131,7 +131,7 @@ export default function Sidebar({ activeWorkspaceId }: SidebarProps) {
       {/* Logo ... */}
       <div className="flex items-center gap-3 px-2 mt-2">
         <Image
-          src="/vintyl-logo.png"
+          src="/logo.png"
           alt="logo"
           width={40}
           height={40}

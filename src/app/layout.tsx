@@ -4,7 +4,6 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme";
 import { ReactQueryProvider } from "@/react-query";
 import { Toaster } from "sonner";
-// import { VoiceflowAgent } from "@/components/global/voice-flow";
 
 
 const inter = Inter({
@@ -14,9 +13,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Vintyl",
   description: "Share AI powered videos with your friends",
-  icons: {
-    icon: "/favicon.png",
-  },
+  // app/favicon.ico is auto-detected by Next.js
 };
 
 export default function RootLayout({
@@ -37,7 +34,6 @@ export default function RootLayout({
           <ReactQueryProvider>
             {children}
             <Toaster />
-            {/* <VoiceflowAgent /> */}
           </ReactQueryProvider>
         </ThemeProvider>
       </body>

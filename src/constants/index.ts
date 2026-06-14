@@ -34,7 +34,4 @@ export const MENU_ITEMS = [
   },
 ] as const;
 
-import { PLAN_LIMITS } from "@/shared/planLimits";
 
-export { PLAN_LIMITS };
-export type Plan = keyof typeof PLAN_LIMITS;
